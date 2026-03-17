@@ -122,6 +122,32 @@ export function updateOrderItemQuantity(itemId: string, quantity: number): void 
   db.prepare('UPDATE order_items SET quantity = ? WHERE id = ?').run(quantity, itemId);
 }
 
+// ── MENU ITEMS CRUD ───────────────────────────────────────
+export function createMenuItem(item: Omit<MenuItem, 'id'>): MenuItem {
+  const id = `m${Date.now()}`;
+  db.prepare(
+    `INSERT INTO menu_items (id, name, description, price, category, available, image_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, item.name, item.description, item.price, item.category, item.available ? 1 : 0, item.image_url ?? null);
+  return getMenuItemById(id)!;
+}
+
+export function updateMenuItem(id: string, fields: Partial<Omit<MenuItem, 'id'>>): MenuItem | undefined {
+  const sets: string[] = [];
+  const values: any[]  = [];
+
+  if (fields.name        !== undefined) { sets.push('name = ?');        values.push(fields.name); }
+  if (fields.description !== undefined) { sets.push('description = ?'); values.push(fields.description); }
+  if (fields.price       !== undefined) { sets.push('price = ?');       values.push(fields.price); }
+  if (fields.category    !== undefined) { sets.push('category = ?');    values.push(fields.category); }
+  if (fields.available   !== undefined) { sets.push('available = ?');   values.push(fields.available ? 1 : 0); }
+
+  if (sets.length === 0) return getMenuItemById(id);
+  values.push(id);
+  db.prepare(`UPDATE menu_items SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+  return getMenuItemById(id);
+}
+
 // ── ID GENERATORS ─────────────────────────────────────────
 export function nextOrderId(): string {
   const row = db.prepare(
