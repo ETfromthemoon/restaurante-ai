@@ -1,5 +1,12 @@
 import { Router, Response } from 'express';
-import { orders, tables, menuItems, nextOrderId, nextOrderItemId } from '../db/store';
+import {
+  getOrders, getOrderById, getActiveOrderByTable, insertOrder, updateOrder,
+  getTableById, updateTable,
+  getMenuItemById,
+  getItemsByOrderId, getOrderItemById,
+  insertOrderItem, deleteOrderItem, updateOrderItemStatus, updateOrderItemQuantity,
+  nextOrderId, nextOrderItemId,
+} from '../db/store';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { Order, OrderItem, OrderStatus, OrderItemStatus } from '../types';
 
@@ -7,31 +14,23 @@ const router = Router();
 router.use(authMiddleware);
 
 function enrichOrder(order: Order): Order {
-  const table = tables.find(t => t.id === order.table_id);
-  return {
-    ...order,
-    table,
-    items: order.items?.map(item => ({
-      ...item,
-      menu_item: menuItems.find(m => m.id === item.menu_item_id),
-    })),
-  };
+  const table = getTableById(order.table_id);
+  const items = getItemsByOrderId(order.id).map(item => ({
+    ...item,
+    menu_item: getMenuItemById(item.menu_item_id),
+  }));
+  return { ...order, table, items };
 }
 
 // GET /api/orders?status=kitchen
 router.get('/', (req: AuthRequest, res: Response): void => {
   const { status } = req.query;
-  const result = status
-    ? orders.filter(o => o.status === status)
-    : orders;
-  res.json(result.map(enrichOrder));
+  res.json(getOrders(status as string | undefined).map(enrichOrder));
 });
 
-// GET /api/orders/table/:tableId — pedido activo de una mesa
+// GET /api/orders/table/:tableId
 router.get('/table/:tableId', (req: AuthRequest, res: Response): void => {
-  const order = orders.find(
-    o => o.table_id === req.params.tableId && ['open', 'kitchen', 'ready', 'billing'].includes(o.status)
-  );
+  const order = getActiveOrderByTable(req.params.tableId);
   if (!order) {
     res.status(404).json({ error: 'No hay pedido activo para esta mesa' });
     return;
@@ -41,7 +40,7 @@ router.get('/table/:tableId', (req: AuthRequest, res: Response): void => {
 
 // GET /api/orders/:id
 router.get('/:id', (req: AuthRequest, res: Response): void => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
     return;
@@ -49,18 +48,16 @@ router.get('/:id', (req: AuthRequest, res: Response): void => {
   res.json(enrichOrder(order));
 });
 
-// POST /api/orders — crear pedido (idempotente: devuelve pedido activo si ya existe)
+// POST /api/orders — crear pedido (idempotente)
 router.post('/', (req: AuthRequest, res: Response): void => {
   const { table_id } = req.body;
-  const table = tables.find(t => t.id === table_id);
+  const table = getTableById(table_id);
   if (!table) {
     res.status(404).json({ error: 'Mesa no encontrada' });
     return;
   }
 
-  const existing = orders.find(
-    o => o.table_id === table_id && ['open', 'kitchen', 'ready', 'billing'].includes(o.status)
-  );
+  const existing = getActiveOrderByTable(table_id);
   if (existing) {
     res.status(200).json(enrichOrder(existing));
     return;
@@ -72,47 +69,42 @@ router.post('/', (req: AuthRequest, res: Response): void => {
     waiter_id: req.user!.id,
     status: 'open',
     created_at: new Date().toISOString(),
-    items: [],
   };
-
-  orders.push(newOrder);
-  table.status = 'occupied';
-  table.last_interaction_at = new Date().toISOString();
+  insertOrder(newOrder);
+  updateTable(table_id, { status: 'occupied', last_interaction_at: new Date().toISOString() });
   res.status(201).json(enrichOrder(newOrder));
 });
 
 // PATCH /api/orders/:id/status
 router.patch('/:id/status', (req: AuthRequest, res: Response): void => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
     return;
   }
 
   const { status } = req.body as { status: OrderStatus };
-  order.status = status;
+  updateOrder(order.id, { status });
 
-  const table = tables.find(t => t.id === order.table_id);
-  if (table) {
-    if (status === 'kitchen') { table.status = 'occupied'; table.last_interaction_at = new Date().toISOString(); }
-    if (status === 'ready')   { table.status = 'ready'; }
-    if (status === 'billing') { table.status = 'billing'; table.last_interaction_at = new Date().toISOString(); }
-    if (status === 'billed')  { table.status = 'free'; table.last_interaction_at = undefined; }
-  }
+  const now = new Date().toISOString();
+  if (status === 'kitchen') updateTable(order.table_id, { status: 'occupied', last_interaction_at: now });
+  if (status === 'ready')   updateTable(order.table_id, { status: 'ready' });
+  if (status === 'billing') updateTable(order.table_id, { status: 'billing', last_interaction_at: now });
+  if (status === 'billed')  updateTable(order.table_id, { status: 'free', last_interaction_at: undefined });
 
-  res.json(enrichOrder(order));
+  res.json(enrichOrder(getOrderById(order.id)!));
 });
 
-// POST /api/orders/:id/items — agregar item
+// POST /api/orders/:id/items
 router.post('/:id/items', (req: AuthRequest, res: Response): void => {
-  const order = orders.find(o => o.id === req.params.id);
+  const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
     return;
   }
 
   const { menu_item_id, quantity, notes } = req.body;
-  const menuItem = menuItems.find(m => m.id === menu_item_id);
+  const menuItem = getMenuItemById(menu_item_id);
   if (!menuItem) {
     res.status(404).json({ error: 'Plato no encontrado' });
     return;
@@ -126,61 +118,71 @@ router.post('/:id/items', (req: AuthRequest, res: Response): void => {
     notes,
     status: 'pending',
   };
-
-  if (!order.items) order.items = [];
-  order.items.push(newItem);
+  insertOrderItem(newItem);
 
   // Segunda ronda: si el pedido ya fue entregado, volver a estado open
   if (order.status === 'ready' && order.delivered_at) {
-    order.status = 'open';
-    const table = tables.find(t => t.id === order.table_id);
-    if (table) table.status = 'occupied';
+    updateOrder(order.id, { status: 'open' });
+    updateTable(order.table_id, { status: 'occupied' });
   }
 
   res.status(201).json({ ...newItem, menu_item: menuItem });
 });
 
-// DELETE /api/orders/:id/items/:itemId — quitar item
-router.delete('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
-  const order = orders.find(o => o.id === req.params.id);
-  if (!order || !order.items) {
-    res.status(404).json({ error: 'Pedido no encontrado' });
-    return;
-  }
-  order.items = order.items.filter(i => i.id !== req.params.itemId);
-  res.json({ success: true });
-});
-
-// PATCH /api/orders/:id/deliver — mesero entrega platos a la mesa
-router.patch('/:id/deliver', (req: AuthRequest, res: Response): void => {
-  const order = orders.find(o => o.id === req.params.id);
+// PATCH /api/orders/:id/items/:itemId — actualizar cantidad
+router.patch('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
+  const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
     return;
   }
-  order.delivered_at = new Date().toISOString();
 
-  const table = tables.find(t => t.id === order.table_id);
-  if (table) {
-    table.status = 'served';
-    table.last_interaction_at = order.delivered_at;
+  const item = getOrderItemById(req.params.itemId);
+  if (!item) {
+    res.status(404).json({ error: 'Item no encontrado' });
+    return;
   }
 
-  res.json(enrichOrder(order));
+  const { quantity } = req.body as { quantity: number };
+  if (!quantity || quantity < 1) {
+    res.status(400).json({ error: 'Cantidad inválida' });
+    return;
+  }
+
+  updateOrderItemQuantity(item.id, quantity);
+  const updated = getOrderItemById(item.id)!;
+  res.json({ ...updated, menu_item: getMenuItemById(updated.menu_item_id) });
 });
 
-// PATCH /api/orders/items/:itemId/status — actualizar estado item (cocina)
-router.patch('/items/:itemId/status', (req: AuthRequest, res: Response): void => {
-  for (const order of orders) {
-    const item = order.items?.find(i => i.id === req.params.itemId);
-    if (item) {
-      const { status } = req.body as { status: OrderItemStatus };
-      item.status = status;
-      res.json({ ...item, menu_item: menuItems.find(m => m.id === item.menu_item_id) });
-      return;
-    }
+// DELETE /api/orders/:id/items/:itemId
+router.delete('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
+  deleteOrderItem(req.params.itemId);
+  res.json({ success: true });
+});
+
+// PATCH /api/orders/:id/deliver
+router.patch('/:id/deliver', (req: AuthRequest, res: Response): void => {
+  const order = getOrderById(req.params.id);
+  if (!order) {
+    res.status(404).json({ error: 'Pedido no encontrado' });
+    return;
   }
-  res.status(404).json({ error: 'Item no encontrado' });
+  const now = new Date().toISOString();
+  updateOrder(order.id, { delivered_at: now });
+  updateTable(order.table_id, { status: 'served', last_interaction_at: now });
+  res.json(enrichOrder(getOrderById(order.id)!));
+});
+
+// PATCH /api/orders/items/:itemId/status
+router.patch('/items/:itemId/status', (req: AuthRequest, res: Response): void => {
+  const item = getOrderItemById(req.params.itemId);
+  if (!item) {
+    res.status(404).json({ error: 'Item no encontrado' });
+    return;
+  }
+  const { status } = req.body as { status: OrderItemStatus };
+  updateOrderItemStatus(item.id, status);
+  res.json({ ...item, status, menu_item: getMenuItemById(item.menu_item_id) });
 });
 
 export default router;
