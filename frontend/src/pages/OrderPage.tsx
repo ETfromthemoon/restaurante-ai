@@ -29,7 +29,7 @@ export default function OrderPage() {
   const navigate = useNavigate();
   const {
     currentOrder, fetchOrCreateOrder,
-    removeOrderItem, sendOrderToKitchen,
+    removeOrderItem, updateOrderItemQuantity, sendOrderToKitchen,
     requestBilling, markDelivered, closeTable, orderLoading: loading,
   } = useAppStore();
 
@@ -127,17 +127,27 @@ export default function OrderPage() {
               <div className="flex-1">
                 <p className="font-semibold text-gray-800 text-sm">{item.menu_item?.name}</p>
                 <p className="text-gray-400 text-xs mt-0.5">
-                  x{item.quantity} · S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
+                  S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
                 </p>
                 {item.notes && <p className="text-gray-400 text-xs italic mt-0.5">📝 {item.notes}</p>}
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xl">{ITEM_STATUS[item.status]}</span>
                 {isOpen && (
-                  <button
-                    onClick={() => handleRemove(item)}
-                    className="text-red-400 font-bold text-lg w-7 h-7 flex items-center justify-center"
-                  >✕</button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        if (item.quantity === 1) handleRemove(item);
+                        else updateOrderItemQuantity(currentOrder!.id, item.id, item.quantity - 1);
+                      }}
+                      className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 font-bold flex items-center justify-center"
+                    >−</button>
+                    <span className="w-6 text-center text-sm font-bold text-gray-700">{item.quantity}</span>
+                    <button
+                      onClick={() => updateOrderItemQuantity(currentOrder!.id, item.id, item.quantity + 1)}
+                      className="w-7 h-7 rounded-full bg-red-500 text-white font-bold flex items-center justify-center"
+                    >+</button>
+                  </div>
                 )}
               </div>
             </div>

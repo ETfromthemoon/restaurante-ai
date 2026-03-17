@@ -30,6 +30,8 @@ interface AppState {
   closeTable: (orderId: string) => Promise<void>;
   markDelivered: (orderId: string) => Promise<void>;
 
+  updateOrderItemQuantity: (orderId: string, itemId: string, quantity: number) => Promise<void>;
+
   fetchKitchenOrders: () => Promise<void>;
   updateItemStatus: (itemId: string, status: OrderItemStatus) => Promise<void>;
   completeOrder: (orderId: string) => Promise<void>;
@@ -142,6 +144,19 @@ export const useAppStore = create<AppState>()(
           }
         } catch (err: any) {
           set({ error: err.message, orderLoading: false });
+        }
+      },
+
+      updateOrderItemQuantity: async (orderId, itemId, quantity) => {
+        try {
+          const { data } = await api.patch(`/orders/${orderId}/items/${itemId}`, { quantity });
+          set(s => ({
+            currentOrder: s.currentOrder
+              ? { ...s.currentOrder, items: s.currentOrder.items?.map(i => i.id === itemId ? { ...data } : i) }
+              : null,
+          }));
+        } catch (err: any) {
+          set({ error: err.message });
         }
       },
 

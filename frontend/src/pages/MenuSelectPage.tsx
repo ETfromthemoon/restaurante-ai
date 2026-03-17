@@ -14,8 +14,10 @@ export default function MenuSelectPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
   const { menuItems, fetchMenu, addOrderItem, menuLoading, orderLoading } = useAppStore();
-  const [adding, setAdding] = useState<string | null>(null);
-  const [added, setAdded] = useState<Set<string>>(new Set());
+  const [adding, setAdding]     = useState<string | null>(null);
+  const [added, setAdded]       = useState<Set<string>>(new Set());
+  const [noteItem, setNoteItem] = useState<MenuItem | null>(null);
+  const [noteText, setNoteText] = useState('');
 
   useEffect(() => {
     if (menuItems.length === 0) fetchMenu();
@@ -29,12 +31,18 @@ export default function MenuSelectPage() {
       return acc;
     }, {} as Record<string, MenuItem[]>);
 
-  const handleAdd = async (item: MenuItem) => {
-    if (!tableId) return;
-    setAdding(item.id);
-    await addOrderItem(tableId, item.id, 1);
+  const handleAddClick = (item: MenuItem) => {
+    setNoteItem(item);
+    setNoteText('');
+  };
+
+  const handleConfirmAdd = async () => {
+    if (!tableId || !noteItem) return;
+    setAdding(noteItem.id);
+    await addOrderItem(tableId, noteItem.id, 1, noteText.trim() || undefined);
     setAdding(null);
-    setAdded(prev => new Set(prev).add(item.id));
+    setAdded(prev => new Set(prev).add(noteItem.id));
+    setNoteItem(null);
   };
 
   return (
@@ -44,7 +52,7 @@ export default function MenuSelectPage() {
         <button onClick={() => navigate(-1)} className="text-red-200 text-lg">←</button>
         <h1 className="font-bold text-lg">🍴 Agregar Platos</h1>
         {orderLoading && (
-          <span className="text-red-200 text-xs ml-auto animate-pulse">Cargando pedido...</span>
+          <span className="text-red-200 text-xs ml-auto animate-pulse">Guardando...</span>
         )}
       </div>
 
@@ -84,7 +92,7 @@ export default function MenuSelectPage() {
                     <div className="flex items-center gap-3">
                       <span className="font-bold text-red-500 text-sm">S/ {item.price}</span>
                       <button
-                        onClick={() => handleAdd(item)}
+                        onClick={() => handleAddClick(item)}
                         disabled={isLoading || orderLoading}
                         className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xl transition-colors
                           ${isLoading || orderLoading ? 'bg-gray-300' : isAdded ? 'bg-green-500' : 'bg-red-500 active:bg-red-600'}`}
@@ -109,6 +117,42 @@ export default function MenuSelectPage() {
           >
             ✅ Ver pedido ({added.size} agregados)
           </button>
+        </div>
+      )}
+
+      {/* Modal de notas */}
+      {noteItem && (
+        <div className="fixed inset-0 bg-black/50 z-20 flex items-end">
+          <div className="bg-white w-full rounded-t-2xl p-4 space-y-3">
+            <div>
+              <p className="font-bold text-gray-800">{noteItem.name}</p>
+              <p className="text-gray-400 text-xs">S/ {noteItem.price}</p>
+            </div>
+            <p className="text-gray-500 text-sm">¿Alguna indicación para cocina? (opcional)</p>
+            <textarea
+              autoFocus
+              rows={2}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none outline-none focus:border-red-400"
+              placeholder="Ej: sin cebolla, término medio, sin gluten..."
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleConfirmAdd}
+                disabled={adding === noteItem.id}
+                className="flex-1 bg-red-500 text-white rounded-xl py-3 font-bold disabled:opacity-50"
+              >
+                {adding === noteItem.id ? 'Agregando...' : 'Agregar al pedido'}
+              </button>
+              <button
+                onClick={() => setNoteItem(null)}
+                className="bg-gray-100 text-gray-600 rounded-xl px-4 font-bold"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
