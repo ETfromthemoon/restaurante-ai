@@ -116,18 +116,30 @@ export const useAppStore = create<AppState>()(
             orderId = newOrder.id;
           }
 
+          const wasServed = _get().currentOrder?.status === 'ready' && !!_get().currentOrder?.delivered_at;
+
           const { data } = await api.post(`/orders/${orderId}/items`, {
             menu_item_id: menuItemId,
             quantity,
             notes,
           });
 
-          set(s => ({
-            currentOrder: s.currentOrder
-              ? { ...s.currentOrder, items: [...(s.currentOrder.items ?? []), data] }
-              : null,
-            orderLoading: false,
-          }));
+          if (wasServed) {
+            // El backend reseteó el pedido a 'open': re-fetch para sincronizar status
+            const { data: refreshed } = await api.get(`/orders/${orderId}`);
+            set(s => ({
+              currentOrder: { ...refreshed, items: [...(refreshed.items ?? [])] },
+              tables: s.tables.map(t => t.id === tableId ? { ...t, status: 'occupied' } : t),
+              orderLoading: false,
+            }));
+          } else {
+            set(s => ({
+              currentOrder: s.currentOrder
+                ? { ...s.currentOrder, items: [...(s.currentOrder.items ?? []), data] }
+                : null,
+              orderLoading: false,
+            }));
+          }
         } catch (err: any) {
           set({ error: err.message, orderLoading: false });
         }

@@ -44,11 +44,11 @@ export default function OrderPage() {
     (sum, i) => sum + (i.menu_item?.price ?? 0) * i.quantity, 0
   ) ?? 0;
 
-  const isOpen    = !currentOrder || currentOrder.status === 'open';
   const isKitchen = currentOrder?.status === 'kitchen';
   const isReady   = currentOrder?.status === 'ready';
   const isBilling = currentOrder?.status === 'billing';
   const isServed  = isReady && !!currentOrder?.delivered_at;
+  const isOpen    = !currentOrder || currentOrder.status === 'open' || isServed;
 
   const handleKitchen = () => {
     if (!currentOrder || !currentOrder.items?.length) { alert('Agrega al menos un plato.'); return; }
