@@ -1,23 +1,26 @@
 # Backlog — Restaurante AI
 
 ## Estado actual del sistema
-- **Frontend web** (Vite + React + Tailwind): login, mapa de mesas, pedido, menú, cocina
-- **Backend** (Express + TypeScript): auth JWT, orders, tables, menu — almacenamiento **en memoria**
-- **Mobile** (Expo/React Native): pantallas equivalentes al frontend web
+- **Frontend web** (Vite + React + Tailwind): login, mapa de mesas, pedido, menú, cocina, dashboard gerente
+- **Backend** (Express + TypeScript): auth JWT, orders, tables, menu, dashboard — almacenamiento **SQLite (better-sqlite3)**
+- **Mobile** (Expo/React Native): pantallas equivalentes al frontend web (pendiente sincronizar)
 - **IA**: SDK de Anthropic instalado, sin integrar aún
 
 ---
 
-## Sprint 2 — Persistencia y gestión base
-> Objetivo: el sistema sobrevive reinicios y el gerente puede administrar datos
+## ✅ Sprint 1 — Flujo core (completado)
+- Creación lazy de pedido (mesa libre no cambia estado al entrar)
+- Segunda ronda de platos tras entrega
+- Fix botón "Enviar a Cocina" oculto hasta tener ítems
 
-| # | Historia | Detalle | Prioridad |
-|---|----------|---------|-----------|
-| 2.1 | Persistencia con SQLite | Reemplazar store en memoria por SQLite (better-sqlite3). Mismas rutas, sin cambios en frontend. | 🔴 Alta |
-| 2.2 | Vista gerente — resumen del día | Dashboard: ventas del día, mesas ocupadas, platos más pedidos, tiempo promedio de atención | 🔴 Alta |
-| 2.3 | Gestión de menú | CRUD de platos desde la app (gerente): crear, editar precio, activar/desactivar disponibilidad | 🔴 Alta |
-| 2.4 | Editar cantidad de ítems | En `OrderPage`, permitir subir/bajar cantidad de un ítem en lugar de solo quitar | 🟡 Media |
-| 2.5 | Notas por ítem en MenuSelectPage | Mostrar campo de notas al agregar un plato (ej. "sin cebolla") | 🟡 Media |
+## ✅ Sprint 2 — Persistencia y gestión base (completado)
+| # | Historia | Detalle |
+|---|----------|---------|
+| ✅ 2.1 | Persistencia con SQLite | `restaurante.db` persiste entre reinicios; seed automático |
+| ✅ 2.2 | Dashboard gerente | `/gerente`: ventas del día, mesas activas, top platos, tiempo promedio |
+| ✅ 2.3 | Gestión de menú | `/gerente/menu`: crear, editar, activar/desactivar platos |
+| ✅ 2.4 | Editar cantidad de ítems | Controles −/n/+ en `OrderPage`; bajar a 0 confirma eliminación |
+| ✅ 2.5 | Notas por ítem | Modal con nota opcional al agregar cada plato en `MenuSelectPage` |
 
 ---
 
