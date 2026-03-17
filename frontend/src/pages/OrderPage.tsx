@@ -160,13 +160,15 @@ export default function OrderPage() {
             >
               + Agregar Platos
             </button>
-            <button
-              onClick={handleKitchen}
-              disabled={loading}
-              className="w-full bg-orange-500 text-white rounded-xl py-3 font-bold disabled:opacity-50"
-            >
-              Enviar a Cocina 🍳
-            </button>
+            {!!currentOrder?.items?.length && (
+              <button
+                onClick={handleKitchen}
+                disabled={loading}
+                className="w-full bg-orange-500 text-white rounded-xl py-3 font-bold disabled:opacity-50"
+              >
+                Enviar a Cocina 🍳
+              </button>
+            )}
           </>
         )}
 
