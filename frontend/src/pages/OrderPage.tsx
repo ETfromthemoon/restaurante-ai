@@ -13,6 +13,7 @@ const BANNER: Record<string, { bg: string; label: string }> = {
   open:    { bg: 'bg-blue-500',   label: '📝 Pedido abierto — agrega platos' },
   kitchen: { bg: 'bg-orange-500', label: '👨‍🍳 En cocina...' },
   ready:   { bg: 'bg-green-500',  label: '✅ Listo para servir' },
+  served:  { bg: 'bg-teal-500',   label: '🍴 Platos entregados — segunda ronda?' },
   billing: { bg: 'bg-yellow-500', label: '💰 Cuenta solicitada' },
 };
 
@@ -85,7 +86,7 @@ export default function OrderPage() {
     return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">Cargando...</p></div>;
   }
 
-  const banner = BANNER[currentOrder?.status ?? 'open'];
+  const banner = isServed ? BANNER['served'] : BANNER[currentOrder?.status ?? 'open'];
   const tableNum = currentOrder?.table?.number ?? tableId?.replace('t', '');
 
   return (
