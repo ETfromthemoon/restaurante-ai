@@ -69,7 +69,7 @@ export default function ManagerDashboardPage() {
             <p className="text-3xl font-bold text-orange-500 mt-1">{data?.tables_occupied ?? 0}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm">
-            <p className="text-gray-400 text-xs uppercase font-bold tracking-wider">Tiempo promedio</p>
+            <p className="text-gray-400 text-xs uppercase font-bold tracking-wider">Tiempo de atención prom. (cocina→entrega)</p>
             <p className="text-3xl font-bold text-blue-500 mt-1">
               {data?.avg_service_minutes != null ? `${data.avg_service_minutes}` : '—'}
               {data?.avg_service_minutes != null && (
@@ -107,6 +107,12 @@ export default function ManagerDashboardPage() {
           className="w-full bg-red-500 text-white rounded-xl py-3 font-bold"
         >
           Gestionar Menú
+        </button>
+        <button
+          onClick={() => navigate('/gerente/promociones')}
+          className="w-full bg-orange-500 text-white rounded-xl py-3 font-bold"
+        >
+          🏷️ Gestionar Promociones
         </button>
       </div>
     </div>

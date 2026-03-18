@@ -1,5 +1,5 @@
 import { db } from './database';
-import { User, Table, MenuItem, Order, OrderItem, OrderItemStatus } from '../types';
+import { User, Table, MenuItem, Order, OrderItem, OrderItemStatus, Promotion } from '../types';
 
 // ── helpers ───────────────────────────────────────────────
 function mapMenuItem(row: any): MenuItem {
@@ -105,9 +105,9 @@ export function getOrderItemById(itemId: string): OrderItem | undefined {
 
 export function insertOrderItem(item: Omit<OrderItem, 'menu_item'>): void {
   db.prepare(
-    `INSERT INTO order_items (id, order_id, menu_item_id, quantity, notes, status)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(item.id, item.order_id, item.menu_item_id, item.quantity, item.notes ?? null, item.status);
+    `INSERT INTO order_items (id, order_id, menu_item_id, quantity, notes, status, effective_price)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(item.id, item.order_id, item.menu_item_id, item.quantity, item.notes ?? null, item.status, item.effective_price ?? null);
 }
 
 export function deleteOrderItem(itemId: string): void {
@@ -118,8 +118,9 @@ export function updateOrderItemStatus(itemId: string, status: OrderItemStatus): 
   db.prepare('UPDATE order_items SET status = ? WHERE id = ?').run(status, itemId);
 }
 
-export function updateOrderItemQuantity(itemId: string, quantity: number): void {
-  db.prepare('UPDATE order_items SET quantity = ? WHERE id = ?').run(quantity, itemId);
+export function updateOrderItemQuantity(itemId: string, quantity: number, effectivePrice?: number | null): void {
+  db.prepare('UPDATE order_items SET quantity = ?, effective_price = ? WHERE id = ?')
+    .run(quantity, effectivePrice ?? null, itemId);
 }
 
 // ── MENU ITEMS CRUD ───────────────────────────────────────
@@ -146,6 +147,49 @@ export function updateMenuItem(id: string, fields: Partial<Omit<MenuItem, 'id'>>
   values.push(id);
   db.prepare(`UPDATE menu_items SET ${sets.join(', ')} WHERE id = ?`).run(...values);
   return getMenuItemById(id);
+}
+
+// ── PROMOTIONS ───────────────────────────────────────────
+function parsePromo(row: any): Promotion {
+  return { ...row, days_of_week: JSON.parse(row.days_of_week), active: !!row.active };
+}
+
+export function getPromotions(): Promotion[] {
+  return (db.prepare('SELECT * FROM promotions ORDER BY created_at DESC').all() as any[]).map(parsePromo);
+}
+
+export function getActivePromotions(): Promotion[] {
+  return (db.prepare('SELECT * FROM promotions WHERE active=1').all() as any[]).map(parsePromo);
+}
+
+export function insertPromotion(p: Omit<Promotion, 'id'>): Promotion {
+  const id = `promo${Date.now()}`;
+  db.prepare(
+    `INSERT INTO promotions (id, name, type, value, applies_to, target_id, days_of_week, time_start, time_end, active, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, p.name, p.type, p.value, p.applies_to, p.target_id ?? null, JSON.stringify(p.days_of_week), p.time_start, p.time_end, p.active ? 1 : 0, p.created_at);
+  return parsePromo(db.prepare('SELECT * FROM promotions WHERE id = ?').get(id));
+}
+
+export function updatePromotion(id: string, fields: Partial<Omit<Promotion, 'id'>>): Promotion {
+  const sets: string[] = [];
+  const values: any[]  = [];
+
+  if (fields.name        !== undefined) { sets.push('name = ?');        values.push(fields.name); }
+  if (fields.type        !== undefined) { sets.push('type = ?');        values.push(fields.type); }
+  if (fields.value       !== undefined) { sets.push('value = ?');       values.push(fields.value); }
+  if (fields.applies_to  !== undefined) { sets.push('applies_to = ?');  values.push(fields.applies_to); }
+  if ('target_id' in fields)            { sets.push('target_id = ?');   values.push(fields.target_id ?? null); }
+  if (fields.days_of_week !== undefined){ sets.push('days_of_week = ?');values.push(JSON.stringify(fields.days_of_week)); }
+  if (fields.time_start  !== undefined) { sets.push('time_start = ?');  values.push(fields.time_start); }
+  if (fields.time_end    !== undefined) { sets.push('time_end = ?');    values.push(fields.time_end); }
+  if (fields.active      !== undefined) { sets.push('active = ?');      values.push(fields.active ? 1 : 0); }
+
+  if (sets.length > 0) {
+    values.push(id);
+    db.prepare(`UPDATE promotions SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+  }
+  return parsePromo(db.prepare('SELECT * FROM promotions WHERE id = ?').get(id));
 }
 
 // ── ID GENERATORS ─────────────────────────────────────────

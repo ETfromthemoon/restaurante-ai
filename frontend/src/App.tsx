@@ -10,6 +10,7 @@ import KitchenQueuePage       from './pages/KitchenQueuePage';
 import KitchenOrderDetailPage from './pages/KitchenOrderDetailPage';
 import ManagerDashboardPage   from './pages/ManagerDashboardPage';
 import MenuManagePage         from './pages/MenuManagePage';
+import PromotionsManagePage  from './pages/PromotionsManagePage';
 
 export default function App() {
   const { user, error, clearError } = useAppStore();
@@ -43,8 +44,9 @@ export default function App() {
         </Route>
 
         <Route element={<ProtectedRoute roles={['manager']} />}>
-          <Route path="/gerente"      element={<ManagerDashboardPage />} />
-          <Route path="/gerente/menu" element={<MenuManagePage />} />
+          <Route path="/gerente"             element={<ManagerDashboardPage />} />
+          <Route path="/gerente/menu"        element={<MenuManagePage />} />
+          <Route path="/gerente/promociones" element={<PromotionsManagePage />} />
         </Route>
 
         <Route path="*" element={<Navigate to={home} />} />

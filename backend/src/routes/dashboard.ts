@@ -18,7 +18,7 @@ router.get('/', (req: AuthRequest, res: Response): void => {
 
   // Ventas del día y cantidad de pedidos cerrados
   const salesRow = db.prepare(`
-    SELECT COALESCE(SUM(oi.quantity * m.price), 0) AS total,
+    SELECT COALESCE(SUM(oi.quantity * COALESCE(oi.effective_price, m.price)), 0) AS total,
            COUNT(DISTINCT o.id)                    AS order_count
     FROM orders o
     JOIN order_items oi ON oi.order_id = o.id

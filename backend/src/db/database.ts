@@ -54,7 +54,23 @@ db.exec(`
     FOREIGN KEY (order_id)     REFERENCES orders(id),
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
   );
+
+  CREATE TABLE IF NOT EXISTS promotions (
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    type         TEXT NOT NULL,
+    value        REAL NOT NULL DEFAULT 0,
+    applies_to   TEXT NOT NULL,
+    target_id    TEXT,
+    days_of_week TEXT NOT NULL,
+    time_start   TEXT NOT NULL,
+    time_end     TEXT NOT NULL,
+    active       INTEGER NOT NULL DEFAULT 1,
+    created_at   TEXT NOT NULL
+  );
 `);
+
+try { db.exec(`ALTER TABLE order_items ADD COLUMN effective_price REAL`); } catch {}
 
 function seed() {
   const { c } = db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number };

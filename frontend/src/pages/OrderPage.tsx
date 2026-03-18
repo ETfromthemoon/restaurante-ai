@@ -35,15 +35,19 @@ export default function OrderPage() {
   } = useAppStore();
 
   useEffect(() => {
-    if (!tableId) return;
-    // Solo re-fetch si no tenemos ya el pedido de esta mesa
-    if (currentOrder?.table_id === tableId) return;
-    fetchOrCreateOrder(tableId);
+    if (tableId) fetchOrCreateOrder(tableId);
   }, [tableId]);
 
   const total = currentOrder?.items?.reduce(
-    (sum, i) => sum + (i.menu_item?.price ?? 0) * i.quantity, 0
+    (sum, i) => sum + (i.effective_price ?? i.menu_item?.price ?? 0) * i.quantity, 0
   ) ?? 0;
+
+  const totalSavings = currentOrder?.items?.reduce((sum, i) => {
+    if (!i.menu_item) return sum;
+    const original = i.menu_item.price * i.quantity;
+    const paid     = (i.effective_price ?? i.menu_item.price) * i.quantity;
+    return sum + (original - paid);
+  }, 0) ?? 0;
 
   const isKitchen = currentOrder?.status === 'kitchen';
   const isReady   = currentOrder?.status === 'ready';
@@ -126,10 +130,33 @@ export default function OrderPage() {
           currentOrder.items.map(item => (
             <div key={item.id} className="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm">
               <div className="flex-1">
-                <p className="font-semibold text-gray-800 text-sm">{item.menu_item?.name}</p>
-                <p className="text-gray-400 text-xs mt-0.5">
-                  S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-gray-800 text-sm">{item.menu_item?.name}</p>
+                  {item.promotion_name && (
+                    <span className="bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                      🏷️ {item.promotion_name}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {item.effective_price != null && item.effective_price !== item.menu_item?.price ? (
+                    <>
+                      <span className="text-gray-300 text-xs line-through">
+                        S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
+                      </span>
+                      <span className="text-orange-500 text-sm font-bold">
+                        S/ {(item.effective_price * item.quantity).toFixed(2)}
+                      </span>
+                      <span className="text-green-600 text-xs font-semibold">
+                        −S/ {(((item.menu_item?.price ?? 0) - item.effective_price) * item.quantity).toFixed(2)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-gray-400 text-xs">
+                      S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
+                    </span>
+                  )}
+                </div>
                 {item.notes && <p className="text-gray-400 text-xs italic mt-0.5">📝 {item.notes}</p>}
               </div>
               <div className="flex items-center gap-2">
@@ -158,6 +185,12 @@ export default function OrderPage() {
 
       {/* Footer */}
       <div className="bg-white border-t border-gray-100 p-4 space-y-3">
+        {totalSavings > 0 && (
+          <div className="flex justify-between items-center bg-green-50 rounded-xl px-3 py-2">
+            <span className="text-green-600 text-sm font-semibold">🎉 Ahorro total</span>
+            <span className="text-green-600 font-bold">−S/ {totalSavings.toFixed(2)}</span>
+          </div>
+        )}
         <div className="flex justify-between items-center">
           <span className="text-gray-500 font-medium">Total</span>
           <span className="text-red-500 font-bold text-2xl">S/ {total.toFixed(2)}</span>

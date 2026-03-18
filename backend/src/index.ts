@@ -6,7 +6,8 @@ import authRoutes      from './routes/auth';
 import tableRoutes     from './routes/tables';
 import orderRoutes     from './routes/orders';
 import menuRoutes      from './routes/menu';
-import dashboardRoutes from './routes/dashboard';
+import dashboardRoutes   from './routes/dashboard';
+import promotionsRoutes  from './routes/promotions';
 
 dotenv.config();
 
@@ -20,7 +21,8 @@ app.use('/api/auth',      authRoutes);
 app.use('/api/tables',    tableRoutes);
 app.use('/api/orders',    orderRoutes);
 app.use('/api/menu',      menuRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/dashboard',   dashboardRoutes);
+app.use('/api/promotions',  promotionsRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 

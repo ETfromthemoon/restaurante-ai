@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
-import { User, Table, MenuItem, Order, OrderItemStatus } from '../types';
+import { User, Table, MenuItem, Order, OrderItemStatus, Promotion } from '../types';
 
 interface AppState {
   user: User | null;
@@ -10,6 +10,8 @@ interface AppState {
   menuItems: MenuItem[];
   currentOrder: Order | null;
   kitchenOrders: Order[];
+  promotions: Promotion[];
+  activePromotions: Promotion[];
 
   // flags separados por dominio
   orderLoading: boolean;
@@ -36,6 +38,11 @@ interface AppState {
   updateItemStatus: (itemId: string, status: OrderItemStatus) => Promise<void>;
   completeOrder: (orderId: string) => Promise<void>;
 
+  fetchActivePromotions: () => Promise<void>;
+  fetchAllPromotions: () => Promise<void>;
+  createPromotion: (p: Omit<Promotion, 'id' | 'created_at'>) => Promise<void>;
+  updatePromotion: (id: string, fields: Partial<Promotion>) => Promise<void>;
+
   clearError: () => void;
 }
 
@@ -48,6 +55,8 @@ export const useAppStore = create<AppState>()(
       menuItems: [],
       currentOrder: null,
       kitchenOrders: [],
+      promotions: [],
+      activePromotions: [],
       orderLoading: false,
       menuLoading: false,
       error: null,
@@ -67,6 +76,7 @@ export const useAppStore = create<AppState>()(
       logout: () => set({
         user: null, token: null, tables: [],
         menuItems: [], currentOrder: null, kitchenOrders: [],
+        promotions: [], activePromotions: [],
         orderLoading: false, menuLoading: false,
       }),
 
@@ -135,12 +145,19 @@ export const useAppStore = create<AppState>()(
               orderLoading: false,
             }));
           } else {
-            set(s => ({
-              currentOrder: s.currentOrder
-                ? { ...s.currentOrder, items: [...(s.currentOrder.items ?? []), data] }
-                : null,
-              orderLoading: false,
-            }));
+            set(s => {
+              if (!s.currentOrder) return { orderLoading: false };
+              const items = s.currentOrder.items ?? [];
+              // Si el backend hizo merge (el item devuelto ya existía), actualizar en lugar de duplicar
+              const existingIdx = items.findIndex(i => i.id === data.id);
+              const newItems = existingIdx >= 0
+                ? items.map(i => i.id === data.id ? { ...data } : i)
+                : [...items, data];
+              return {
+                currentOrder: { ...s.currentOrder, items: newItems },
+                orderLoading: false,
+              };
+            });
           }
         } catch (err: any) {
           set({ error: err.message, orderLoading: false });
@@ -258,6 +275,44 @@ export const useAppStore = create<AppState>()(
         try {
           await api.patch(`/orders/${orderId}/status`, { status: 'ready' });
           set(s => ({ kitchenOrders: s.kitchenOrders.filter(o => o.id !== orderId) }));
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      fetchActivePromotions: async () => {
+        try {
+          const { data } = await api.get('/promotions/active');
+          set({ activePromotions: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      fetchAllPromotions: async () => {
+        try {
+          const { data } = await api.get('/promotions');
+          set({ promotions: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      createPromotion: async p => {
+        try {
+          await api.post('/promotions', p);
+          const { data } = await api.get('/promotions');
+          set({ promotions: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      updatePromotion: async (id, fields) => {
+        try {
+          await api.patch(`/promotions/${id}`, fields);
+          const { data } = await api.get('/promotions');
+          set({ promotions: data });
         } catch (err: any) {
           set({ error: err.message });
         }

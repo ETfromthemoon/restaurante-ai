@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
-import { MenuItem } from '../types';
+import { MenuItem, Promotion } from '../types';
 
 const CATEGORY_ICONS: Record<string, string> = {
   'Entradas':    '🥗',
@@ -13,7 +13,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 export default function MenuSelectPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
-  const { menuItems, fetchMenu, addOrderItem, menuLoading, orderLoading } = useAppStore();
+  const { menuItems, fetchMenu, addOrderItem, menuLoading, orderLoading, activePromotions, fetchActivePromotions } = useAppStore();
   const [adding, setAdding]     = useState<string | null>(null);
   const [added, setAdded]       = useState<Set<string>>(new Set());
   const [noteItem, setNoteItem] = useState<MenuItem | null>(null);
@@ -21,7 +21,31 @@ export default function MenuSelectPage() {
 
   useEffect(() => {
     if (menuItems.length === 0) fetchMenu();
+    fetchActivePromotions();
   }, []);
+
+  function getPromoForItem(item: MenuItem): Promotion | undefined {
+    const priority: Record<string, number> = { item: 0, category: 1, all: 2 };
+    return [...activePromotions]
+      .sort((a, b) => priority[a.applies_to] - priority[b.applies_to])
+      .find(p =>
+        p.applies_to === 'item'     ? p.target_id === item.id :
+        p.applies_to === 'category' ? p.target_id === item.category : true
+      );
+  }
+
+  function promoBadge(p: Promotion): string {
+    if (p.type === '2x1')        return '2×1';
+    if (p.type === 'percentage') return `-${p.value}%`;
+    if (p.type === 'fixed')      return `-S/${p.value}`;
+    return '🏷️';
+  }
+
+  function discountedPrice(item: MenuItem, p: Promotion): number | null {
+    if (p.type === 'percentage') return item.price * (1 - p.value / 100);
+    if (p.type === 'fixed')      return Math.max(0, item.price - p.value);
+    return null; // 2x1 depende de la cantidad, no muestra precio fijo
+  }
 
   const categories = menuItems
     .filter(m => m.available)
@@ -83,14 +107,36 @@ export default function MenuSelectPage() {
               {items.map(item => {
                 const isAdded   = added.has(item.id);
                 const isLoading = adding === item.id;
+                const promo     = getPromoForItem(item);
                 return (
                   <div key={item.id} className="bg-white px-4 py-3 flex items-center gap-3">
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800 text-sm">{item.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-800 text-sm">{item.name}</p>
+                        {promo && (
+                          <span className="bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                            {promoBadge(promo)}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-gray-400 text-xs mt-0.5">{item.description}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-bold text-red-500 text-sm">S/ {item.price}</span>
+                      <div className="text-right">
+                        {promo && discountedPrice(item, promo) !== null ? (
+                          <>
+                            <span className="text-gray-300 text-xs line-through block">S/ {item.price}</span>
+                            <span className="font-bold text-orange-500 text-sm">S/ {discountedPrice(item, promo)!.toFixed(2)}</span>
+                          </>
+                        ) : promo?.type === '2x1' ? (
+                          <>
+                            <span className="font-bold text-red-500 text-sm">S/ {item.price}</span>
+                            <span className="text-orange-500 text-xs block">lleva 2, paga 1</span>
+                          </>
+                        ) : (
+                          <span className="font-bold text-red-500 text-sm">S/ {item.price}</span>
+                        )}
+                      </div>
                       <button
                         onClick={() => handleAddClick(item)}
                         disabled={isLoading || orderLoading}
