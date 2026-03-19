@@ -14,10 +14,12 @@ export default function MenuSelectPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
   const { menuItems, fetchMenu, addOrderItem, menuLoading, orderLoading, activePromotions, fetchActivePromotions } = useAppStore();
-  const [adding, setAdding]     = useState<string | null>(null);
-  const [added, setAdded]       = useState<Set<string>>(new Set());
-  const [noteItem, setNoteItem] = useState<MenuItem | null>(null);
-  const [noteText, setNoteText] = useState('');
+  const [adding, setAdding]         = useState<string | null>(null);
+  const [added, setAdded]           = useState<Set<string>>(new Set());
+  const [noteItem, setNoteItem]     = useState<MenuItem | null>(null);
+  const [noteText, setNoteText]     = useState('');
+  const [search, setSearch]           = useState('');
+  const [activeCategory, setCategory] = useState<string | null>(null);
 
   useEffect(() => {
     if (menuItems.length === 0) fetchMenu();
@@ -47,13 +49,18 @@ export default function MenuSelectPage() {
     return null; // 2x1 depende de la cantidad, no muestra precio fijo
   }
 
-  const categories = menuItems
-    .filter(m => m.available)
-    .reduce((acc, item) => {
-      if (!acc[item.category]) acc[item.category] = [];
-      acc[item.category].push(item);
-      return acc;
-    }, {} as Record<string, MenuItem[]>);
+  const allCategories = [...new Set(menuItems.filter(m => m.available).map(m => m.category))];
+
+  const filtered = menuItems.filter(m => m.available &&
+    (!activeCategory || m.category === activeCategory) &&
+    (!search || m.name.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const categories = filtered.reduce((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = [];
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, MenuItem[]>);
 
   const handleAddClick = (item: MenuItem) => {
     setNoteItem(item);
@@ -80,6 +87,40 @@ export default function MenuSelectPage() {
         )}
       </div>
 
+      {/* Búsqueda y filtro de categorías */}
+      {menuItems.length > 0 && (
+        <div className="sticky top-14 z-10 bg-white border-b border-gray-100 px-3 py-2 space-y-2">
+          <input
+            type="text"
+            placeholder="Buscar plato..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-400"
+          />
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <button
+              onClick={() => setCategory(null)}
+              className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                !activeCategory ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-600 border-gray-200'
+              }`}
+            >
+              Todos
+            </button>
+            {allCategories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategory(activeCategory === cat ? null : cat)}
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                  activeCategory === cat ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-600 border-gray-200'
+                }`}
+              >
+                {CATEGORY_ICONS[cat] ?? '🍴'} {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Estado del menú */}
       {menuLoading ? (
         <div className="flex flex-col items-center justify-center pt-24 gap-3">
@@ -93,6 +134,14 @@ export default function MenuSelectPage() {
             className="bg-red-500 text-white px-6 py-2 rounded-xl font-semibold"
           >
             Reintentar
+          </button>
+        </div>
+      ) : Object.keys(categories).length === 0 ? (
+        <div className="flex flex-col items-center justify-center pt-24 gap-3">
+          <p className="text-4xl">🔍</p>
+          <p className="text-gray-400 font-medium">Sin resultados para "{search}"</p>
+          <button onClick={() => { setSearch(''); setCategory(null); }} className="text-red-500 text-sm font-semibold">
+            Limpiar filtros
           </button>
         </div>
       ) : (

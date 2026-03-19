@@ -19,6 +19,7 @@ export interface Table {
   capacity: number;
   status: TableStatus;
   last_interaction_at?: string;
+  assigned_waiter_id?: string | null;
 }
 
 export interface MenuItem {
@@ -29,6 +30,7 @@ export interface MenuItem {
   category: string;
   available: boolean;
   image_url?: string;
+  stock?: number | null;
 }
 
 export interface OrderItem {
@@ -42,6 +44,7 @@ export interface OrderItem {
   effective_price?: number | null;
   promotion_name?: string | null;
   promotion_type?: string | null;
+  round: number;
 }
 
 export interface Promotion {
@@ -67,4 +70,14 @@ export interface Order {
   created_at: string;
   delivered_at?: string;
   items?: OrderItem[];
+  caja_session_id?: string | null;
+  cashier_id?: string | null;
+}
+
+export interface CajaSession {
+  id: string;
+  cashier_id: string;
+  cashier_name: string;
+  opened_at: string;
+  closed_at?: string;
 }

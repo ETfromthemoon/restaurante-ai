@@ -99,6 +99,12 @@ export default function OrderPage() {
       <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate('/mesas')} className="text-red-200 text-lg">←</button>
         <h1 className="font-bold text-lg">Mesa {tableNum}</h1>
+        <button
+          onClick={() => navigate(`/mesas/${tableId}/historial`)}
+          className="ml-auto text-red-200 text-xs font-semibold border border-red-300 rounded-lg px-2 py-1"
+        >
+          Historial
+        </button>
       </div>
 
       {banner && (
@@ -118,7 +124,7 @@ export default function OrderPage() {
         </div>
       )}
 
-      {/* Items */}
+      {/* Items agrupados por ronda */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {!currentOrder?.items?.length ? (
           <div className="text-center pt-16">
@@ -126,61 +132,78 @@ export default function OrderPage() {
             <p className="text-gray-500 font-semibold mt-4">Pedido vacío</p>
             <p className="text-gray-400 text-sm mt-1">Agrega platos del menú</p>
           </div>
-        ) : (
-          currentOrder.items.map(item => (
-            <div key={item.id} className="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm">
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-semibold text-gray-800 text-sm">{item.menu_item?.name}</p>
-                  {item.promotion_name && (
-                    <span className="bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                      🏷️ {item.promotion_name}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {item.effective_price != null && item.effective_price !== item.menu_item?.price ? (
-                    <>
-                      <span className="text-gray-300 text-xs line-through">
-                        S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
-                      </span>
-                      <span className="text-orange-500 text-sm font-bold">
-                        S/ {(item.effective_price * item.quantity).toFixed(2)}
-                      </span>
-                      <span className="text-green-600 text-xs font-semibold">
-                        −S/ {(((item.menu_item?.price ?? 0) - item.effective_price) * item.quantity).toFixed(2)}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-gray-400 text-xs">
-                      S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
-                    </span>
-                  )}
-                </div>
-                {item.notes && <p className="text-gray-400 text-xs italic mt-0.5">📝 {item.notes}</p>}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{ITEM_STATUS[item.status]}</span>
-                {isOpen && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => {
-                        if (item.quantity === 1) handleRemove(item);
-                        else updateOrderItemQuantity(currentOrder!.id, item.id, item.quantity - 1);
-                      }}
-                      className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 font-bold flex items-center justify-center"
-                    >−</button>
-                    <span className="w-6 text-center text-sm font-bold text-gray-700">{item.quantity}</span>
-                    <button
-                      onClick={() => updateOrderItemQuantity(currentOrder!.id, item.id, item.quantity + 1)}
-                      className="w-7 h-7 rounded-full bg-red-500 text-white font-bold flex items-center justify-center"
-                    >+</button>
+        ) : (() => {
+          const maxRound = Math.max(...(currentOrder.items?.map(i => i.round ?? 1) ?? [1]));
+          const rounds = Array.from({ length: maxRound }, (_, i) => i + 1);
+          return rounds.map(round => {
+            const roundItems = (currentOrder.items ?? []).filter(i => (i.round ?? 1) === round);
+            if (roundItems.length === 0) return null;
+            return (
+              <div key={round}>
+                {maxRound > 1 && (
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ronda {round}</span>
+                    <div className="flex-1 border-t border-gray-200" />
                   </div>
                 )}
+                {roundItems.map(item => (
+                  <div key={item.id} className="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-gray-800 text-sm">{item.menu_item?.name}</p>
+                        {item.promotion_name && (
+                          <span className="bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                            🏷️ {item.promotion_name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {item.effective_price != null && item.effective_price !== item.menu_item?.price ? (
+                          <>
+                            <span className="text-gray-300 text-xs line-through">
+                              S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
+                            </span>
+                            <span className="text-orange-500 text-sm font-bold">
+                              S/ {(item.effective_price * item.quantity).toFixed(2)}
+                            </span>
+                            <span className="text-green-600 text-xs font-semibold">
+                              −S/ {(((item.menu_item?.price ?? 0) - item.effective_price) * item.quantity).toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 text-xs">
+                            S/ {((item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      {item.notes && <p className="text-gray-400 text-xs italic mt-0.5">📝 {item.notes}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{ITEM_STATUS[item.status]}</span>
+                      {isOpen && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              if (item.quantity === 1) handleRemove(item);
+                              else updateOrderItemQuantity(currentOrder!.id, item.id, item.quantity - 1);
+                            }}
+                            className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 font-bold flex items-center justify-center"
+                          >−</button>
+                          <span className="w-6 text-center text-sm font-bold text-gray-700">{item.quantity}</span>
+                          <button
+                            onClick={() => updateOrderItemQuantity(currentOrder!.id, item.id, item.quantity + 1)}
+                            disabled={item.menu_item?.stock !== null && item.menu_item?.stock !== undefined && item.quantity >= item.menu_item.stock}
+                            className="w-7 h-7 rounded-full bg-red-500 text-white font-bold flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                          >+</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))
-        )}
+            );
+          });
+        })()}
       </div>
 
       {/* Footer */}

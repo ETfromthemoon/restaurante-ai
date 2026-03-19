@@ -20,7 +20,7 @@ router.get('/', (_req: AuthRequest, res: Response): void => {
 
 // POST /api/menu — crear plato
 router.post('/', managerOnly, (req: AuthRequest, res: Response): void => {
-  const { name, description, price, category, available } = req.body;
+  const { name, description, price, category, available, stock } = req.body;
   if (!name || price == null || !category) {
     res.status(400).json({ error: 'Faltan campos: name, price, category' });
     return;
@@ -31,6 +31,7 @@ router.post('/', managerOnly, (req: AuthRequest, res: Response): void => {
     price: parseFloat(price),
     category,
     available: available !== false,
+    stock: stock != null ? parseInt(stock) : null,
   });
   res.status(201).json(item);
 });
@@ -42,7 +43,11 @@ router.patch('/:id', managerOnly, (req: AuthRequest, res: Response): void => {
     res.status(404).json({ error: 'Plato no encontrado' });
     return;
   }
-  const updated = updateMenuItem(req.params.id, req.body);
+  const fields = { ...req.body };
+  if (fields.stock !== undefined && fields.stock !== null && fields.available === undefined) {
+    fields.available = fields.stock > 0;
+  }
+  const updated = updateMenuItem(req.params.id, fields);
   res.json(updated);
 });
 

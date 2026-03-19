@@ -71,6 +71,22 @@ db.exec(`
 `);
 
 try { db.exec(`ALTER TABLE order_items ADD COLUMN effective_price REAL`); } catch {}
+try { db.exec(`ALTER TABLE order_items ADD COLUMN round INTEGER NOT NULL DEFAULT 1`); } catch {}
+try { db.exec(`ALTER TABLE menu_items ADD COLUMN stock INTEGER`); } catch {}
+try { db.exec(`ALTER TABLE tables ADD COLUMN assigned_waiter_id TEXT REFERENCES users(id)`); } catch {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN caja_session_id TEXT`); } catch {}
+try { db.exec(`ALTER TABLE orders ADD COLUMN cashier_id TEXT`); } catch {}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS caja_sessions (
+    id           TEXT PRIMARY KEY,
+    cashier_id   TEXT NOT NULL,
+    cashier_name TEXT NOT NULL,
+    opened_at    TEXT NOT NULL,
+    closed_at    TEXT,
+    FOREIGN KEY (cashier_id) REFERENCES users(id)
+  );
+`);
 
 function seed() {
   const { c } = db.prepare('SELECT COUNT(*) as c FROM users').get() as { c: number };

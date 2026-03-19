@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
-import { User, Table, MenuItem, Order, OrderItemStatus, Promotion } from '../types';
+import { User, Table, MenuItem, Order, OrderItemStatus, Promotion, CajaSession } from '../types';
 
 interface AppState {
   user: User | null;
@@ -12,6 +12,11 @@ interface AppState {
   kitchenOrders: Order[];
   promotions: Promotion[];
   activePromotions: Promotion[];
+  readyTableIds: string[];
+  tableOrderHistory: Order[];
+  activeCajaSession: CajaSession | null;
+  cajaHistory: CajaSession[];
+  waiters: User[];
 
   // flags separados por dominio
   orderLoading: boolean;
@@ -43,6 +48,21 @@ interface AppState {
   createPromotion: (p: Omit<Promotion, 'id' | 'created_at'>) => Promise<void>;
   updatePromotion: (id: string, fields: Partial<Promotion>) => Promise<void>;
 
+  fetchActiveCaja: () => Promise<void>;
+  openCaja: () => Promise<void>;
+  closeCaja: (sessionId: string) => Promise<void>;
+  fetchCajaHistory: () => Promise<void>;
+  fetchWaiters: () => Promise<void>;
+  assignTableWaiter: (tableId: string, waiterId: string | null) => Promise<void>;
+
+  // Socket handlers
+  handleOrderUpdated: (order: Order) => void;
+  handleTableUpdated: (table: Table) => void;
+  handleOrderReady: (payload: { tableId: string }) => void;
+  handleItemStatus: (payload: { orderId: string; itemId: string; status: OrderItemStatus }) => void;
+  clearReadyTable: (tableId: string) => void;
+  fetchTableOrderHistory: (tableId: string) => Promise<void>;
+
   clearError: () => void;
 }
 
@@ -57,6 +77,11 @@ export const useAppStore = create<AppState>()(
       kitchenOrders: [],
       promotions: [],
       activePromotions: [],
+      readyTableIds: [],
+      tableOrderHistory: [],
+      activeCajaSession: null,
+      cajaHistory: [],
+      waiters: [],
       orderLoading: false,
       menuLoading: false,
       error: null,
@@ -313,6 +338,112 @@ export const useAppStore = create<AppState>()(
           await api.patch(`/promotions/${id}`, fields);
           const { data } = await api.get('/promotions');
           set({ promotions: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      handleOrderUpdated: (order: Order) => {
+        set(s => {
+          let kitchenOrders = s.kitchenOrders;
+          const inQueue = kitchenOrders.some(o => o.id === order.id);
+          if (order.status === 'kitchen') {
+            kitchenOrders = inQueue
+              ? kitchenOrders.map(o => o.id === order.id ? order : o)
+              : [...kitchenOrders, order];
+          } else {
+            kitchenOrders = kitchenOrders.filter(o => o.id !== order.id);
+          }
+          return {
+            currentOrder: s.currentOrder?.id === order.id ? order : s.currentOrder,
+            kitchenOrders,
+            tables: order.table ? s.tables.map(t => t.id === order.table!.id ? order.table! : t) : s.tables,
+          };
+        });
+      },
+
+      handleTableUpdated: (table: Table) => {
+        set(s => ({ tables: s.tables.map(t => t.id === table.id ? table : t) }));
+      },
+
+      handleOrderReady: (payload: { tableId: string }) => {
+        set(s => ({
+          readyTableIds: s.readyTableIds.includes(payload.tableId)
+            ? s.readyTableIds
+            : [...s.readyTableIds, payload.tableId],
+        }));
+      },
+
+      handleItemStatus: (payload: { orderId: string; itemId: string; status: OrderItemStatus }) => {
+        set(s => ({
+          currentOrder: s.currentOrder?.id === payload.orderId
+            ? { ...s.currentOrder, items: s.currentOrder.items?.map(i => i.id === payload.itemId ? { ...i, status: payload.status } : i) }
+            : s.currentOrder,
+        }));
+      },
+
+      clearReadyTable: (tableId: string) => {
+        set(s => ({ readyTableIds: s.readyTableIds.filter(id => id !== tableId) }));
+      },
+
+      fetchTableOrderHistory: async (tableId: string) => {
+        try {
+          const { data } = await api.get(`/orders?table_id=${tableId}`);
+          set({ tableOrderHistory: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      fetchActiveCaja: async () => {
+        try {
+          const { data } = await api.get('/caja/active');
+          set({ activeCajaSession: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      openCaja: async () => {
+        try {
+          const { data } = await api.post('/caja/open');
+          set({ activeCajaSession: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      closeCaja: async (sessionId: string) => {
+        try {
+          await api.patch(`/caja/${sessionId}/close`);
+          set({ activeCajaSession: null });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      fetchCajaHistory: async () => {
+        try {
+          const { data } = await api.get('/caja');
+          set({ cajaHistory: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      fetchWaiters: async () => {
+        try {
+          const { data } = await api.get('/tables/waiters');
+          set({ waiters: data });
+        } catch (err: any) {
+          set({ error: err.message });
+        }
+      },
+
+      assignTableWaiter: async (tableId: string, waiterId: string | null) => {
+        try {
+          const { data } = await api.patch(`/tables/${tableId}/assign`, { waiter_id: waiterId });
+          set(s => ({ tables: s.tables.map(t => t.id === tableId ? data : t) }));
         } catch (err: any) {
           set({ error: err.message });
         }

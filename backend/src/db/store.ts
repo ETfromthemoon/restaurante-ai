@@ -1,5 +1,5 @@
 import { db } from './database';
-import { User, Table, MenuItem, Order, OrderItem, OrderItemStatus, Promotion } from '../types';
+import { User, Table, MenuItem, Order, OrderItem, OrderItemStatus, Promotion, CajaSession } from '../types';
 
 // ── helpers ───────────────────────────────────────────────
 function mapMenuItem(row: any): MenuItem {
@@ -9,6 +9,10 @@ function mapMenuItem(row: any): MenuItem {
 // ── USERS ─────────────────────────────────────────────────
 export function getUserByEmail(email: string): User | undefined {
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email) as User | undefined;
+}
+
+export function getWaiters(): User[] {
+  return db.prepare("SELECT * FROM users WHERE role = 'waiter'").all() as User[];
 }
 
 // ── TABLES ────────────────────────────────────────────────
@@ -22,7 +26,7 @@ export function getTableById(id: string): Table | undefined {
 
 export function updateTable(
   id: string,
-  fields: Partial<Pick<Table, 'status' | 'last_interaction_at'>>
+  fields: Partial<Pick<Table, 'status' | 'last_interaction_at' | 'assigned_waiter_id'>>
 ): void {
   const sets: string[] = [];
   const values: any[]  = [];
@@ -32,9 +36,12 @@ export function updateTable(
     values.push(fields.status);
   }
   if ('last_interaction_at' in fields) {
-    // undefined → NULL en SQLite (libera la mesa)
     sets.push('last_interaction_at = ?');
     values.push(fields.last_interaction_at ?? null);
+  }
+  if ('assigned_waiter_id' in fields) {
+    sets.push('assigned_waiter_id = ?');
+    values.push(fields.assigned_waiter_id ?? null);
   }
 
   if (sets.length === 0) return;
@@ -81,13 +88,15 @@ export function insertOrder(order: Omit<Order, 'items' | 'table'>): void {
 
 export function updateOrder(
   id: string,
-  fields: Partial<Pick<Order, 'status' | 'delivered_at'>>
+  fields: Partial<Pick<Order, 'status' | 'delivered_at' | 'caja_session_id' | 'cashier_id'>>
 ): void {
   const sets: string[] = [];
   const values: any[]  = [];
 
-  if (fields.status       !== undefined) { sets.push('status = ?');       values.push(fields.status); }
-  if (fields.delivered_at !== undefined) { sets.push('delivered_at = ?'); values.push(fields.delivered_at); }
+  if (fields.status           !== undefined) { sets.push('status = ?');           values.push(fields.status); }
+  if (fields.delivered_at     !== undefined) { sets.push('delivered_at = ?');     values.push(fields.delivered_at); }
+  if ('caja_session_id' in fields)           { sets.push('caja_session_id = ?');  values.push(fields.caja_session_id ?? null); }
+  if ('cashier_id' in fields)               { sets.push('cashier_id = ?');        values.push(fields.cashier_id ?? null); }
 
   if (sets.length === 0) return;
   values.push(id);
@@ -105,9 +114,18 @@ export function getOrderItemById(itemId: string): OrderItem | undefined {
 
 export function insertOrderItem(item: Omit<OrderItem, 'menu_item'>): void {
   db.prepare(
-    `INSERT INTO order_items (id, order_id, menu_item_id, quantity, notes, status, effective_price)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(item.id, item.order_id, item.menu_item_id, item.quantity, item.notes ?? null, item.status, item.effective_price ?? null);
+    `INSERT INTO order_items (id, order_id, menu_item_id, quantity, notes, status, effective_price, round)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(item.id, item.order_id, item.menu_item_id, item.quantity, item.notes ?? null, item.status, item.effective_price ?? null, item.round ?? 1);
+}
+
+export function getCurrentRound(orderId: string): number {
+  const row = db.prepare('SELECT MAX(round) as r FROM order_items WHERE order_id = ?').get(orderId) as { r: number | null };
+  return row.r ?? 1;
+}
+
+export function getOrdersByTable(tableId: string): Order[] {
+  return db.prepare('SELECT * FROM orders WHERE table_id = ? ORDER BY created_at DESC').all(tableId) as Order[];
 }
 
 export function deleteOrderItem(itemId: string): void {
@@ -127,9 +145,9 @@ export function updateOrderItemQuantity(itemId: string, quantity: number, effect
 export function createMenuItem(item: Omit<MenuItem, 'id'>): MenuItem {
   const id = `m${Date.now()}`;
   db.prepare(
-    `INSERT INTO menu_items (id, name, description, price, category, available, image_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, item.name, item.description, item.price, item.category, item.available ? 1 : 0, item.image_url ?? null);
+    `INSERT INTO menu_items (id, name, description, price, category, available, image_url, stock)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, item.name, item.description, item.price, item.category, item.available ? 1 : 0, item.image_url ?? null, item.stock ?? null);
   return getMenuItemById(id)!;
 }
 
@@ -142,6 +160,7 @@ export function updateMenuItem(id: string, fields: Partial<Omit<MenuItem, 'id'>>
   if (fields.price       !== undefined) { sets.push('price = ?');       values.push(fields.price); }
   if (fields.category    !== undefined) { sets.push('category = ?');    values.push(fields.category); }
   if (fields.available   !== undefined) { sets.push('available = ?');   values.push(fields.available ? 1 : 0); }
+  if ('stock' in fields)               { sets.push('stock = ?');        values.push(fields.stock ?? null); }
 
   if (sets.length === 0) return getMenuItemById(id);
   values.push(id);
@@ -190,6 +209,41 @@ export function updatePromotion(id: string, fields: Partial<Omit<Promotion, 'id'
     db.prepare(`UPDATE promotions SET ${sets.join(', ')} WHERE id = ?`).run(...values);
   }
   return parsePromo(db.prepare('SELECT * FROM promotions WHERE id = ?').get(id));
+}
+
+// ── INVENTARIO ────────────────────────────────────────────
+export function adjustStock(menuItemId: string, delta: number): void {
+  db.prepare('UPDATE menu_items SET stock = stock + ? WHERE id = ? AND stock IS NOT NULL').run(delta, menuItemId);
+  const item = getMenuItemById(menuItemId);
+  if (item && item.stock !== null && item.stock !== undefined) {
+    if (item.stock <= 0) {
+      db.prepare('UPDATE menu_items SET available = 0, stock = 0 WHERE id = ?').run(menuItemId);
+    } else {
+      db.prepare('UPDATE menu_items SET available = 1 WHERE id = ?').run(menuItemId);
+    }
+  }
+}
+
+// ── CAJA SESSIONS ─────────────────────────────────────────
+export function getActiveCajaSession(): CajaSession | undefined {
+  return db.prepare('SELECT * FROM caja_sessions WHERE closed_at IS NULL LIMIT 1').get() as CajaSession | undefined;
+}
+
+export function getCajaSessions(): CajaSession[] {
+  return db.prepare('SELECT * FROM caja_sessions ORDER BY opened_at DESC').all() as CajaSession[];
+}
+
+export function getCajaSessionById(id: string): CajaSession | undefined {
+  return db.prepare('SELECT * FROM caja_sessions WHERE id = ?').get(id) as CajaSession | undefined;
+}
+
+export function insertCajaSession(s: CajaSession): void {
+  db.prepare('INSERT INTO caja_sessions (id, cashier_id, cashier_name, opened_at) VALUES (?, ?, ?, ?)')
+    .run(s.id, s.cashier_id, s.cashier_name, s.opened_at);
+}
+
+export function closeCajaSession(id: string, closedAt: string): void {
+  db.prepare('UPDATE caja_sessions SET closed_at = ? WHERE id = ?').run(closedAt, id);
 }
 
 // ── ID GENERATORS ─────────────────────────────────────────

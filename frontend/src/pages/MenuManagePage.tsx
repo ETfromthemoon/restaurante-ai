@@ -11,10 +11,11 @@ interface FormState {
   price:       string;
   category:    string;
   available:   boolean;
+  stock:       string;
 }
 
 const EMPTY_FORM: FormState = {
-  name: '', description: '', price: '', category: 'Principales', available: true,
+  name: '', description: '', price: '', category: 'Principales', available: true, stock: '',
 };
 
 export default function MenuManagePage() {
@@ -45,6 +46,7 @@ export default function MenuManagePage() {
       price:       String(item.price),
       category:    item.category,
       available:   item.available,
+      stock:       item.stock != null ? String(item.stock) : '',
     });
     setEditing(item);
     setCreating(false);
@@ -58,7 +60,11 @@ export default function MenuManagePage() {
   async function handleSave() {
     setSaving(true);
     try {
-      const payload = { ...form, price: parseFloat(form.price) };
+      const payload = {
+        ...form,
+        price: parseFloat(form.price),
+        stock: form.stock !== '' ? parseInt(form.stock) : null,
+      };
       if (creating) {
         await api.post('/menu', payload);
       } else if (editing) {
@@ -132,6 +138,16 @@ export default function MenuManagePage() {
             </select>
           </div>
 
+          <input
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+            placeholder="Stock (dejar vacío = ilimitado ∞)"
+            type="number"
+            min="0"
+            step="1"
+            value={form.stock}
+            onChange={e => setForm(f => ({ ...f, stock: e.target.value }))}
+          />
+
           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
             <input
               type="checkbox"
@@ -176,8 +192,21 @@ export default function MenuManagePage() {
                       <p className={`font-semibold text-sm truncate ${item.available ? 'text-gray-800' : 'text-gray-400 line-through'}`}>
                         {item.name}
                       </p>
+                      {item.stock !== null && item.stock !== undefined && item.stock <= 5 && (
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 flex-shrink-0">
+                          Stock: {item.stock}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-gray-400 text-xs mt-0.5">S/ {item.price.toFixed(2)}</p>
+                    <p className="text-gray-400 text-xs mt-0.5">
+                      S/ {item.price.toFixed(2)}
+                      {item.stock !== null && item.stock !== undefined && item.stock > 5 && (
+                        <span className="ml-2 text-gray-300">Stock: {item.stock}</span>
+                      )}
+                      {(item.stock === null || item.stock === undefined) && (
+                        <span className="ml-2 text-gray-300">∞</span>
+                      )}
+                    </p>
                   </div>
 
                   <button

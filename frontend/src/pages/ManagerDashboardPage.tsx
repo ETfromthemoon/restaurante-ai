@@ -13,7 +13,9 @@ interface DashboardData {
 
 export default function ManagerDashboardPage() {
   const navigate = useNavigate();
-  const { logout, user } = useAppStore();
+  const { logout, user, activeCajaSession, fetchActiveCaja } = useAppStore();
+
+  useEffect(() => { fetchActiveCaja(); }, []);
   const [data, setData]       = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -114,6 +116,27 @@ export default function ManagerDashboardPage() {
         >
           🏷️ Gestionar Promociones
         </button>
+        <button
+          onClick={() => navigate('/gerente/mesas/asignar')}
+          className="w-full bg-blue-500 text-white rounded-xl py-3 font-bold"
+        >
+          Asignar Mesas 🗺️
+        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate('/gerente/caja')}
+            className="bg-green-600 text-white rounded-xl py-3 font-bold flex items-center justify-center gap-2"
+          >
+            <span>Caja 💰</span>
+            <span className={`w-2.5 h-2.5 rounded-full ${activeCajaSession ? 'bg-green-300' : 'bg-red-300'}`}></span>
+          </button>
+          <button
+            onClick={() => navigate('/gerente/caja/historial')}
+            className="bg-gray-700 text-white rounded-xl py-3 font-bold"
+          >
+            Historial 🗂️
+          </button>
+        </div>
       </div>
     </div>
   );

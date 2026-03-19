@@ -13,8 +13,7 @@ export default function KitchenQueuePage() {
 
   useEffect(() => {
     fetchKitchenOrders();
-    const interval = setInterval(fetchKitchenOrders, 30_000);
-    return () => clearInterval(interval);
+    // Sin polling — los updates llegan por WebSocket
   }, []);
 
   const sorted = [...kitchenOrders].sort(

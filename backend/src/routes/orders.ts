@@ -7,9 +7,12 @@ import {
   insertOrderItem, deleteOrderItem, updateOrderItemStatus, updateOrderItemQuantity,
   nextOrderId, nextOrderItemId,
   getActivePromotions,
+  getCurrentRound, getOrdersByTable,
+  adjustStock, getActiveCajaSession,
 } from '../db/store';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { Order, OrderItem, OrderStatus, OrderItemStatus, Promotion, MenuItem } from '../types';
+import { getIO } from '../socket';
 
 function isPromotionActive(p: Promotion, now = new Date()): boolean {
   const day = now.getDay() || 7; // 1=lun..7=dom
@@ -62,9 +65,13 @@ function enrichOrder(order: Order): Order {
   return { ...order, table, items };
 }
 
-// GET /api/orders?status=kitchen
+// GET /api/orders?status=kitchen  OR  /api/orders?table_id=t1
 router.get('/', (req: AuthRequest, res: Response): void => {
-  const { status } = req.query;
+  const { status, table_id } = req.query;
+  if (table_id) {
+    res.json(getOrdersByTable(table_id as string).map(enrichOrder));
+    return;
+  }
   res.json(getOrders(status as string | undefined).map(enrichOrder));
 });
 
@@ -126,13 +133,29 @@ router.patch('/:id/status', (req: AuthRequest, res: Response): void => {
   const { status } = req.body as { status: OrderStatus };
   updateOrder(order.id, { status });
 
+  if (status === 'billed') {
+    const session = getActiveCajaSession();
+    if (session) updateOrder(order.id, { caja_session_id: session.id, cashier_id: session.cashier_id });
+  }
+
   const now = new Date().toISOString();
   if (status === 'kitchen') updateTable(order.table_id, { status: 'occupied', last_interaction_at: now });
   if (status === 'ready')   updateTable(order.table_id, { status: 'ready' });
   if (status === 'billing') updateTable(order.table_id, { status: 'billing', last_interaction_at: now });
   if (status === 'billed')  updateTable(order.table_id, { status: 'free', last_interaction_at: undefined });
 
-  res.json(enrichOrder(getOrderById(order.id)!));
+  const enriched = enrichOrder(getOrderById(order.id)!);
+  const io = getIO();
+  io.to('waiters').to('kitchen').emit('order:updated', { order: enriched });
+  if (status === 'ready') {
+    const table = getTableById(order.table_id);
+    io.to('waiters').emit('order:ready', { orderId: order.id, tableId: order.table_id, tableNumber: table?.number });
+  }
+  if (enriched.table) {
+    io.to('waiters').emit('table:updated', { table: enriched.table });
+  }
+
+  res.json(enriched);
 });
 
 // POST /api/orders/:id/items
@@ -152,6 +175,12 @@ router.post('/:id/items', (req: AuthRequest, res: Response): void => {
 
   const qty = quantity || 1;
 
+  // Validar stock
+  if (menuItem.stock !== null && menuItem.stock !== undefined && menuItem.stock < qty) {
+    res.status(400).json({ error: `Stock insuficiente (disponible: ${menuItem.stock})` });
+    return;
+  }
+
   // Aplicar promoción activa si corresponde
   const now = new Date();
   const activePromos = getActivePromotions().filter(p => isPromotionActive(p, now));
@@ -159,11 +188,17 @@ router.post('/:id/items', (req: AuthRequest, res: Response): void => {
   activePromos.sort((a, b) => priorityOrder[a.applies_to] - priorityOrder[b.applies_to]);
   const matchedPromo = activePromos.find(p => matchesPromotion(p, menuItem));
 
-  // Merge: si ya existe una fila con el mismo plato (y sin notas especiales), sumar cantidad
+  // Determinar ronda del nuevo ítem
+  const currentRound = getCurrentRound(order.id);
+  const itemRound = (order.status === 'kitchen' || order.status === 'ready')
+    ? currentRound + 1
+    : currentRound;
+
+  // Merge: si ya existe una fila con el mismo plato (y sin notas especiales, y misma ronda), sumar cantidad
   const existingItems = getItemsByOrderId(order.id);
   const existingItem = notes
     ? undefined
-    : existingItems.find(i => i.menu_item_id === menu_item_id && !i.notes);
+    : existingItems.find(i => i.menu_item_id === menu_item_id && !i.notes && i.round === itemRound);
 
   if (existingItem) {
     const newQty = existingItem.quantity + qty;
@@ -173,16 +208,17 @@ router.post('/:id/items', (req: AuthRequest, res: Response): void => {
     updateOrderItemQuantity(existingItem.id, newQty, effectivePrice);
     const updated = getOrderItemById(existingItem.id)!;
 
+    if (menuItem.stock !== null && menuItem.stock !== undefined) adjustStock(menuItem.id, -qty);
+
     if (order.status === 'ready' && order.delivered_at) {
       updateOrder(order.id, { status: 'open' });
       updateTable(order.table_id, { status: 'occupied' });
     }
 
-    res.status(200).json({
-      ...updated, menu_item: menuItem,
-      promotion_name: matchedPromo?.name ?? null,
-      promotion_type: matchedPromo?.type ?? null,
-    });
+    const itemResult = { ...updated, menu_item: menuItem, promotion_name: matchedPromo?.name ?? null, promotion_type: matchedPromo?.type ?? null };
+    const io = getIO();
+    io.to('kitchen').to('waiters').emit('order:item_added', { orderId: order.id, item: itemResult });
+    res.status(200).json(itemResult);
     return;
   }
 
@@ -198,8 +234,10 @@ router.post('/:id/items', (req: AuthRequest, res: Response): void => {
     notes,
     status: 'pending',
     effective_price: effectivePrice,
+    round: itemRound,
   };
   insertOrderItem(newItem);
+  if (menuItem.stock !== null && menuItem.stock !== undefined) adjustStock(menuItem.id, -qty);
 
   // Segunda ronda: si el pedido ya fue entregado, volver a estado open
   if (order.status === 'ready' && order.delivered_at) {
@@ -207,11 +245,10 @@ router.post('/:id/items', (req: AuthRequest, res: Response): void => {
     updateTable(order.table_id, { status: 'occupied' });
   }
 
-  res.status(201).json({
-    ...newItem, menu_item: menuItem,
-    promotion_name: matchedPromo?.name ?? null,
-    promotion_type: matchedPromo?.type ?? null,
-  });
+  const itemResult = { ...newItem, menu_item: menuItem, promotion_name: matchedPromo?.name ?? null, promotion_type: matchedPromo?.type ?? null };
+  const io = getIO();
+  io.to('kitchen').to('waiters').emit('order:item_added', { orderId: order.id, item: itemResult });
+  res.status(201).json(itemResult);
 });
 
 // PATCH /api/orders/:id/items/:itemId — actualizar cantidad
@@ -234,8 +271,18 @@ router.patch('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  // Recalcular effective_price con la nueva cantidad
+  // Validar y ajustar stock si aplica
   const menuItem = getMenuItemById(item.menu_item_id)!;
+  if (menuItem.stock !== null && menuItem.stock !== undefined) {
+    const delta = quantity - item.quantity;
+    if (delta > 0 && menuItem.stock < delta) {
+      res.status(400).json({ error: `Stock insuficiente (disponible: ${menuItem.stock})` });
+      return;
+    }
+    if (delta !== 0) adjustStock(item.menu_item_id, -delta);
+  }
+
+  // Recalcular effective_price con la nueva cantidad
   const now = new Date();
   const activePromos = getActivePromotions().filter(p => isPromotionActive(p, now));
   const priorityOrder: Record<string, number> = { item: 0, category: 1, all: 2 };
@@ -247,15 +294,18 @@ router.patch('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
 
   updateOrderItemQuantity(item.id, quantity, effectivePrice);
   const updated = getOrderItemById(item.id)!;
-  res.json({
-    ...updated, menu_item: menuItem,
-    promotion_name: matchedPromo?.name ?? null,
-    promotion_type: matchedPromo?.type ?? null,
-  });
+  const result = { ...updated, menu_item: menuItem, promotion_name: matchedPromo?.name ?? null, promotion_type: matchedPromo?.type ?? null };
+  getIO().to('waiters').emit('order:item_updated', { orderId: order.id, item: result });
+  res.json(result);
 });
 
 // DELETE /api/orders/:id/items/:itemId
 router.delete('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
+  const item = getOrderItemById(req.params.itemId);
+  if (item) {
+    const mi = getMenuItemById(item.menu_item_id);
+    if (mi && mi.stock !== null && mi.stock !== undefined) adjustStock(item.menu_item_id, item.quantity);
+  }
   deleteOrderItem(req.params.itemId);
   res.json({ success: true });
 });
@@ -282,7 +332,9 @@ router.patch('/items/:itemId/status', (req: AuthRequest, res: Response): void =>
   }
   const { status } = req.body as { status: OrderItemStatus };
   updateOrderItemStatus(item.id, status);
-  res.json({ ...item, status, menu_item: getMenuItemById(item.menu_item_id) });
+  const menuItem = getMenuItemById(item.menu_item_id);
+  getIO().to('waiters').emit('order:item_status', { orderId: item.order_id, itemId: item.id, status });
+  res.json({ ...item, status, menu_item: menuItem });
 });
 
 export default router;
