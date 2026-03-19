@@ -1,15 +1,29 @@
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { getUserByEmail } from '../db/store';
 import { JWT_SECRET } from '../middleware/auth';
+
+const loginSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(1, 'Password requerido'),
+});
 
 const router = Router();
 
 router.post('/login', (req: Request, res: Response): void => {
-  const { email, password } = req.body;
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const issues = (parsed.error as any).issues ?? [];
+    res.status(400).json({ error: issues[0]?.message ?? 'Datos inválidos' });
+    return;
+  }
+
+  const { email, password } = parsed.data;
   const user = getUserByEmail(email);
 
-  if (!user || user.password !== password) {
+  if (!user || !bcrypt.compareSync(password, user.password)) {
     res.status(401).json({ error: 'Credenciales incorrectas' });
     return;
   }

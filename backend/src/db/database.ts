@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import bcrypt from 'bcryptjs';
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../restaurante.db');
 
@@ -103,9 +104,10 @@ function seed() {
   );
 
   db.transaction(() => {
-    insertUser.run('u1', 'María López',  'mesero@restaurante.com',  '1234', 'waiter');
-    insertUser.run('u2', 'Carlos Ruiz',  'cocina@restaurante.com',  '1234', 'cook');
-    insertUser.run('u3', 'Ana García',   'gerente@restaurante.com', '1234', 'manager');
+    const hash = bcrypt.hashSync('1234', 10);
+    insertUser.run('u1', 'María López',  'mesero@restaurante.com',  hash, 'waiter');
+    insertUser.run('u2', 'Carlos Ruiz',  'cocina@restaurante.com',  hash, 'cook');
+    insertUser.run('u3', 'Ana García',   'gerente@restaurante.com', hash, 'manager');
 
     const caps: Record<number, number> = { 1:2, 2:4, 3:4, 4:6, 5:2, 6:4, 7:6, 8:2, 9:4, 10:6 };
     for (let i = 1; i <= 10; i++) insertTable.run(`t${i}`, i, caps[i], 'free');

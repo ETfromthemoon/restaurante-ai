@@ -1,22 +1,19 @@
 import { Router, Response } from 'express';
 import { getPromotions, getActivePromotions, insertPromotion, updatePromotion } from '../db/store';
-import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
 import { Promotion } from '../types';
+import { validate, createPromotionSchema, updatePromotionSchema } from '../schemas';
 
 const router = Router();
 router.use(authMiddleware);
 
 // GET /api/promotions — todas (manager)
-router.get('/', (req: AuthRequest, res: Response): void => {
-  if (req.user?.role !== 'manager') {
-    res.status(403).json({ error: 'Solo para gerentes' });
-    return;
-  }
+router.get('/', requireRole('manager'), (_req: AuthRequest, res: Response): void => {
   res.json(getPromotions());
 });
 
 // GET /api/promotions/active — activas ahora (waiter)
-router.get('/active', (req: AuthRequest, res: Response): void => {
+router.get('/active', (_req: AuthRequest, res: Response): void => {
   const now = new Date();
   const day = now.getDay() || 7;
   const hhmm = now.toTimeString().slice(0, 5);
@@ -27,30 +24,21 @@ router.get('/active', (req: AuthRequest, res: Response): void => {
 });
 
 // POST /api/promotions — crear (manager)
-router.post('/', (req: AuthRequest, res: Response): void => {
-  if (req.user?.role !== 'manager') {
-    res.status(403).json({ error: 'Solo para gerentes' });
-    return;
-  }
-  const { name, type, value, applies_to, target_id, days_of_week, time_start, time_end } = req.body;
-  if (!name || !type || !applies_to || !days_of_week || !time_start || !time_end) {
-    res.status(400).json({ error: 'Campos requeridos: name, type, applies_to, days_of_week, time_start, time_end' });
-    return;
-  }
+router.post('/', requireRole('manager'), (req: AuthRequest, res: Response): void => {
+  const v = validate(createPromotionSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const promo = insertPromotion({
-    name, type, value: value ?? 0, applies_to, target_id: target_id ?? null,
-    days_of_week, time_start, time_end, active: true, created_at: new Date().toISOString(),
+    ...v.data, target_id: v.data.target_id ?? null,
+    active: true, created_at: new Date().toISOString(),
   } as Omit<Promotion, 'id'>);
   res.status(201).json(promo);
 });
 
 // PATCH /api/promotions/:id — editar / toggle (manager)
-router.patch('/:id', (req: AuthRequest, res: Response): void => {
-  if (req.user?.role !== 'manager') {
-    res.status(403).json({ error: 'Solo para gerentes' });
-    return;
-  }
-  const updated = updatePromotion(req.params.id, req.body);
+router.patch('/:id', requireRole('manager'), (req: AuthRequest, res: Response): void => {
+  const v = validate(updatePromotionSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  const updated = updatePromotion(req.params.id, v.data);
   res.json(updated);
 });
 

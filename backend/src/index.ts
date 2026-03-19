@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { initSocket } from './socket';
@@ -17,16 +19,39 @@ dotenv.config();
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+// --- Security middleware ---
+app.use(helmet());
 
-app.use('/api/auth',      authRoutes);
-app.use('/api/tables',    tableRoutes);
-app.use('/api/orders',    orderRoutes);
-app.use('/api/menu',      menuRoutes);
-app.use('/api/dashboard',   dashboardRoutes);
-app.use('/api/promotions',  promotionsRoutes);
-app.use('/api/caja',        cajaRoutes);
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
+  : ['http://localhost:5173'];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+
+app.use(express.json({ limit: '1mb' }));
+
+// Rate limiters
+const authLimiter = rateLimit({ windowMs: 60_000, max: 5, message: { error: 'Demasiados intentos. Espera 1 minuto.' } });
+const apiLimiter  = rateLimit({ windowMs: 60_000, max: 100 });
+app.use('/api/auth', authLimiter);
+app.use('/api', apiLimiter);
+
+// HTTPS redirect in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
+app.use('/api/auth',       authRoutes);
+app.use('/api/tables',     tableRoutes);
+app.use('/api/orders',     orderRoutes);
+app.use('/api/menu',       menuRoutes);
+app.use('/api/dashboard',  dashboardRoutes);
+app.use('/api/promotions', promotionsRoutes);
+app.use('/api/caja',       cajaRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
@@ -34,8 +59,4 @@ const httpServer = createServer(app);
 initSocket(httpServer);
 httpServer.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log('👤 Usuarios demo:');
-  console.log('   mesero@restaurante.com / 1234');
-  console.log('   cocina@restaurante.com / 1234');
-  console.log('   gerente@restaurante.com / 1234');
 });
