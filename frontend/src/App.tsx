@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { socketService } from './services/socketService';
 import ProtectedRoute from './components/ProtectedRoute';
+import DashboardLayout from './components/DashboardLayout';
 import LoginPage                from './pages/LoginPage';
 import TableMapPage             from './pages/TableMapPage';
 import OrderPage                from './pages/OrderPage';
@@ -48,24 +49,24 @@ export default function App() {
         <Route path="/login" element={!user ? <LoginPage /> : <Navigate to={home} />} />
 
         <Route element={<ProtectedRoute roles={['waiter', 'manager']} />}>
-          <Route path="/mesas"                        element={<TableMapPage />} />
-          <Route path="/mesas/:tableId/pedido"        element={<OrderPage />} />
-          <Route path="/mesas/:tableId/pedido/menu"   element={<MenuSelectPage />} />
-          <Route path="/mesas/:tableId/historial"     element={<TableOrderHistoryPage />} />
+          <Route path="/mesas"                        element={<DashboardLayout><TableMapPage /></DashboardLayout>} />
+          <Route path="/mesas/:tableId/pedido"        element={<DashboardLayout><OrderPage /></DashboardLayout>} />
+          <Route path="/mesas/:tableId/pedido/menu"   element={<DashboardLayout><MenuSelectPage /></DashboardLayout>} />
+          <Route path="/mesas/:tableId/historial"     element={<DashboardLayout><TableOrderHistoryPage /></DashboardLayout>} />
         </Route>
 
         <Route element={<ProtectedRoute roles={['cook']} />}>
-          <Route path="/cocina"          element={<KitchenQueuePage />} />
-          <Route path="/cocina/:orderId" element={<KitchenOrderDetailPage />} />
+          <Route path="/cocina"          element={<DashboardLayout><KitchenQueuePage /></DashboardLayout>} />
+          <Route path="/cocina/:orderId" element={<DashboardLayout><KitchenOrderDetailPage /></DashboardLayout>} />
         </Route>
 
         <Route element={<ProtectedRoute roles={['manager']} />}>
-          <Route path="/gerente"                    element={<ManagerDashboardPage />} />
-          <Route path="/gerente/menu"               element={<MenuManagePage />} />
-          <Route path="/gerente/promociones"        element={<PromotionsManagePage />} />
-          <Route path="/gerente/caja"               element={<CajaPage />} />
-          <Route path="/gerente/caja/historial"     element={<CajaHistorialPage />} />
-          <Route path="/gerente/mesas/asignar"      element={<TableAssignmentPage />} />
+          <Route path="/gerente"                    element={<DashboardLayout><ManagerDashboardPage /></DashboardLayout>} />
+          <Route path="/gerente/menu"               element={<DashboardLayout><MenuManagePage /></DashboardLayout>} />
+          <Route path="/gerente/promociones"        element={<DashboardLayout><PromotionsManagePage /></DashboardLayout>} />
+          <Route path="/gerente/caja"               element={<DashboardLayout><CajaPage /></DashboardLayout>} />
+          <Route path="/gerente/caja/historial"     element={<DashboardLayout><CajaHistorialPage /></DashboardLayout>} />
+          <Route path="/gerente/mesas/asignar"      element={<DashboardLayout><TableAssignmentPage /></DashboardLayout>} />
         </Route>
 
         <Route path="*" element={<Navigate to={home} />} />
