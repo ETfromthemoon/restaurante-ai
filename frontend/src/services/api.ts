@@ -19,3 +19,66 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// ---------------------------------------------------------------------------
+// AI Service helpers
+// ---------------------------------------------------------------------------
+
+export interface PairingSuggestion {
+  id: string | null;
+  name: string;
+  price: number | null;
+  category: string | null;
+  reason: string;
+}
+
+export interface PairingResponse {
+  item: { id: string; name: string };
+  suggestions: PairingSuggestion[];
+}
+
+export interface ShiftSummaryResponse {
+  summary: string;
+  stats: Record<string, string | number>;
+}
+
+export interface DelayAlert {
+  orderId: string;
+  tableId: string;
+  elapsedMinutes: number;
+  threshold: number;
+}
+
+export interface DelayCheckResponse {
+  alerts: DelayAlert[];
+  message: string;
+  avgHistoricalMinutes?: number;
+}
+
+export interface MenuRecommendation {
+  id: string | null;
+  name: string;
+  price: number | null;
+  category: string | null;
+  reason: string;
+}
+
+export interface MenuRecommendationsResponse {
+  recommendations: MenuRecommendation[];
+  period: string;
+  hour: number;
+}
+
+export const aiService = {
+  getPairing: (itemId: string): Promise<PairingResponse> =>
+    api.post('/ai/pairing', { itemId }).then(r => r.data),
+
+  getShiftSummary: (): Promise<ShiftSummaryResponse> =>
+    api.get('/ai/shift-summary').then(r => r.data),
+
+  getDelayCheck: (): Promise<DelayCheckResponse> =>
+    api.get('/ai/delay-check').then(r => r.data),
+
+  getMenuRecommendations: (): Promise<MenuRecommendationsResponse> =>
+    api.get('/ai/menu-recommendations').then(r => r.data),
+};

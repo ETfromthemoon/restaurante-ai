@@ -37,15 +37,15 @@
 
 ---
 
-## Sprint 4 — Inteligencia artificial
+## ✅ Sprint 4 — Inteligencia artificial (completado)
 > Objetivo: aprovechar el SDK de Anthropic ya instalado
 
 | # | Historia | Detalle | Prioridad |
 |---|----------|---------|-----------|
-| 4.1 | Sugerencias de maridaje | Al agregar un plato, Claude sugiere bebida o postre complementario | 🔴 Alta |
-| 4.2 | Resumen de turno con IA | El gerente puede pedir un resumen narrativo del día ("¿cómo fue el turno?") | 🔴 Alta |
-| 4.3 | Detección de demoras | Claude alerta si un pedido lleva más tiempo del promedio histórico en cocina | 🟡 Media |
-| 4.4 | Recomendaciones de menú por hora | Sugerir platos según hora del día y patrones de venta | 🟡 Media |
+| ✅ 4.1 | Sugerencias de maridaje | Al agregar un plato, Claude sugiere bebida o postre complementario (`POST /api/ai/pairing`) | 🔴 Alta |
+| ✅ 4.2 | Resumen de turno con IA | El gerente solicita resumen narrativo del día desde el dashboard (`GET /api/ai/shift-summary`) | 🔴 Alta |
+| ✅ 4.3 | Detección de demoras | Claude alerta si un pedido supera el 150% del promedio histórico (`GET /api/ai/delay-check`) | 🟡 Media |
+| ✅ 4.4 | Recomendaciones de menú por hora | Sugerir platos según hora del día y patrones de venta (`GET /api/ai/menu-recommendations`) | 🟡 Media |
 | 4.5 | Notas de voz para pedidos | El mesero dicta el pedido por voz; Whisper + Claude lo transcriben a ítems | 🟢 Baja |
 
 ---

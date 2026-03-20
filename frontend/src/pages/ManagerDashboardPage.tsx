@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
-import api from '../services/api';
+import api, { aiService, ShiftSummaryResponse, DelayCheckResponse } from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download, BookOpen, Tag, Users, Wallet, ClipboardList } from 'lucide-react';
+import { Download, BookOpen, Tag, Users, Wallet, ClipboardList, Sparkles, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface DashboardData {
   sales_today:         number;
@@ -30,11 +30,45 @@ export default function ManagerDashboardPage() {
   const [data, setData]       = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // AI state
+  const [aiSummary, setAiSummary]         = useState<ShiftSummaryResponse | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
+  const [delayData, setDelayData]         = useState<DelayCheckResponse | null>(null);
+  const [delayLoading, setDelayLoading]   = useState(false);
+
   useEffect(() => {
     api.get('/dashboard')
       .then(r => setData(r.data))
       .finally(() => setLoading(false));
+    // Check delays on load
+    checkDelays();
   }, []);
+
+  const checkDelays = async () => {
+    setDelayLoading(true);
+    try {
+      const res = await aiService.getDelayCheck();
+      setDelayData(res);
+    } catch {
+      // silencioso
+    } finally {
+      setDelayLoading(false);
+    }
+  };
+
+  const fetchAiSummary = async () => {
+    setAiSummaryLoading(true);
+    setAiSummaryOpen(true);
+    try {
+      const res = await aiService.getShiftSummary();
+      setAiSummary(res);
+    } catch {
+      setAiSummary(null);
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
@@ -52,10 +86,87 @@ export default function ManagerDashboardPage() {
             Resumen del día · {new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <button className="btn-accent">
-          <Download size={16} /> Exportar Reporte
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchAiSummary}
+            disabled={aiSummaryLoading}
+            className="btn-accent flex items-center gap-2"
+          >
+            <Sparkles size={16} />
+            {aiSummaryLoading ? 'Generando...' : 'Resumen IA'}
+          </button>
+          <button className="btn-ghost flex items-center gap-2">
+            <Download size={16} /> Exportar
+          </button>
+        </div>
       </div>
+
+      {/* Alerta de demoras */}
+      {delayData && delayData.alerts.length > 0 && (
+        <div className="mb-4 glass border border-orange-400/30 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-orange-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-orange-300">⚠️ Demoras detectadas</p>
+            <p className="text-slate-400 text-xs mt-1">{delayData.message}</p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {delayData.alerts.map(a => (
+                <span key={a.orderId} className="bg-orange-400/10 border border-orange-400/20 text-orange-300 text-xs px-2 py-0.5 rounded-full">
+                  Mesa {a.tableId}: {a.elapsedMinutes} min
+                </span>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={checkDelays}
+            disabled={delayLoading}
+            className="text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <RefreshCw size={14} className={delayLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      )}
+
+      {/* Resumen IA modal */}
+      {aiSummaryOpen && (
+        <div className="fixed inset-0 bg-black/60 z-30 flex items-center justify-center p-4">
+          <div className="glass-strong rounded-2xl p-6 max-w-lg w-full space-y-4 border border-white/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-accent" />
+                <h3 className="font-bold text-lg">Resumen del Turno</h3>
+              </div>
+              <button onClick={() => setAiSummaryOpen(false)} className="text-slate-500 hover:text-slate-300 text-2xl leading-none">×</button>
+            </div>
+
+            {aiSummaryLoading ? (
+              <div className="py-8 flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                <p className="text-slate-400 text-sm">Claude está analizando el turno...</p>
+              </div>
+            ) : aiSummary ? (
+              <>
+                <p className="text-slate-300 text-sm leading-relaxed">{aiSummary.summary}</p>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  {Object.entries(aiSummary.stats).map(([k, v]) => (
+                    <div key={k} className="glass rounded-lg p-2.5">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider">{k.replace(/_/g, ' ')}</p>
+                      <p className="text-sm font-semibold text-slate-200 mt-0.5">{String(v)}</p>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={fetchAiSummary}
+                  className="btn-ghost w-full justify-center text-sm gap-2 flex items-center"
+                >
+                  <RefreshCw size={14} /> Regenerar
+                </button>
+              </>
+            ) : (
+              <p className="text-slate-400 text-sm text-center py-6">No se pudo generar el resumen</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

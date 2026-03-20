@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { MenuItem, Promotion } from '../types';
+import { aiService, PairingSuggestion } from '../services/api';
 
 const CATEGORY_ICONS: Record<string, string> = {
   'Entradas':    '🥗',
@@ -20,6 +21,11 @@ export default function MenuSelectPage() {
   const [noteText, setNoteText]     = useState('');
   const [search, setSearch]           = useState('');
   const [activeCategory, setCategory] = useState<string | null>(null);
+
+  // Pairing state
+  const [pairingItem, setPairingItem]           = useState<MenuItem | null>(null);
+  const [pairingSuggestions, setPairingSuggestions] = useState<PairingSuggestion[]>([]);
+  const [pairingLoading, setPairingLoading]     = useState(false);
 
   useEffect(() => {
     if (menuItems.length === 0) fetchMenu();
@@ -46,7 +52,7 @@ export default function MenuSelectPage() {
   function discountedPrice(item: MenuItem, p: Promotion): number | null {
     if (p.type === 'percentage') return item.price * (1 - p.value / 100);
     if (p.type === 'fixed')      return Math.max(0, item.price - p.value);
-    return null; // 2x1 depende de la cantidad, no muestra precio fijo
+    return null;
   }
 
   const allCategories = [...new Set(menuItems.filter(m => m.available).map(m => m.category))];
@@ -73,7 +79,29 @@ export default function MenuSelectPage() {
     await addOrderItem(tableId, noteItem.id, 1, noteText.trim() || undefined);
     setAdding(null);
     setAdded(prev => new Set(prev).add(noteItem.id));
+
+    // Obtener sugerencias de maridaje en paralelo
+    const itemForPairing = noteItem;
     setNoteItem(null);
+    setPairingItem(itemForPairing);
+    setPairingSuggestions([]);
+    setPairingLoading(true);
+    try {
+      const res = await aiService.getPairing(itemForPairing.id);
+      setPairingSuggestions(res.suggestions);
+    } catch {
+      // silencioso si falla
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  const handleAddPairing = async (suggestion: PairingSuggestion) => {
+    if (!tableId || !suggestion.id) return;
+    setAdding(suggestion.id);
+    await addOrderItem(tableId, suggestion.id, 1, undefined);
+    setAdding(null);
+    setAdded(prev => new Set(prev).add(suggestion.id!));
   };
 
   return (
@@ -247,6 +275,65 @@ export default function MenuSelectPage() {
                 Cancelar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de sugerencias de maridaje */}
+      {pairingItem && (
+        <div className="fixed inset-0 bg-black/50 z-20 flex items-end">
+          <div className="bg-white w-full rounded-t-2xl p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-orange-500 font-semibold uppercase tracking-wider">✨ Sugerencias de maridaje</p>
+                <p className="font-bold text-gray-800 mt-0.5">Combina bien con {pairingItem.name}</p>
+              </div>
+              <button
+                onClick={() => setPairingItem(null)}
+                className="text-gray-400 text-xl leading-none"
+              >×</button>
+            </div>
+
+            {pairingLoading ? (
+              <div className="py-6 flex flex-col items-center gap-2">
+                <div className="w-6 h-6 border-2 border-orange-300 border-t-orange-500 rounded-full animate-spin" />
+                <p className="text-gray-400 text-sm">Claude está pensando...</p>
+              </div>
+            ) : pairingSuggestions.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">No se obtuvieron sugerencias</p>
+            ) : (
+              <div className="space-y-3">
+                {pairingSuggestions.map((s, i) => {
+                  const isAlreadyAdded = s.id ? added.has(s.id) : false;
+                  return (
+                    <div key={i} className="border border-orange-100 rounded-xl p-3 flex items-center gap-3">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800 text-sm">{s.name}</p>
+                        <p className="text-gray-400 text-xs mt-0.5 italic">"{s.reason}"</p>
+                        {s.price && <p className="text-red-500 font-bold text-xs mt-1">S/ {s.price}</p>}
+                      </div>
+                      {s.id && (
+                        <button
+                          onClick={() => handleAddPairing(s)}
+                          disabled={isAlreadyAdded || adding === s.id}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0 transition-colors
+                            ${adding === s.id ? 'bg-gray-300' : isAlreadyAdded ? 'bg-green-500' : 'bg-orange-400 active:bg-orange-500'}`}
+                        >
+                          {adding === s.id ? '·' : isAlreadyAdded ? '✓' : '+'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <button
+              onClick={() => setPairingItem(null)}
+              className="w-full bg-gray-100 text-gray-600 rounded-xl py-3 font-semibold text-sm"
+            >
+              Continuar sin agregar
+            </button>
           </div>
         </div>
       )}
