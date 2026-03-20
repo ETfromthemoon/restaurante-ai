@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, UtensilsCrossed, ChefHat, BookOpen, Wallet, Tag, LogOut } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, ChefHat, BookOpen, Wallet, Tag, LogOut, Sun, Moon } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
+import { useTheme } from '../store/useTheme';
 
 interface Props { children: ReactNode; }
 
@@ -31,6 +32,22 @@ const navSections: { title: string; items: NavItem[] }[] = [
   },
 ];
 
+function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const { isDark, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      className="flex items-center gap-1.5 rounded-xl transition-all font-medium text-xs px-3 py-2 btn-ghost"
+    >
+      {isDark
+        ? <><Sun size={14} className="text-yellow-400" />{!compact && <span>Modo claro</span>}</>
+        : <><Moon size={14} className="text-indigo-500" />{!compact && <span>Modo oscuro</span>}</>
+      }
+    </button>
+  );
+}
+
 export default function DashboardLayout({ children }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,11 +64,11 @@ export default function DashboardLayout({ children }: Props) {
       {/* Sidebar */}
       <aside className="glass-sidebar w-56 min-h-screen p-4 flex flex-col sticky top-0 self-start shrink-0 z-10 hidden lg:flex">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-3 pb-5 mb-5 border-b border-white/[0.08]">
+        <div className="flex items-center gap-2.5 px-3 pb-5 mb-5" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center text-lg">
             🍽
           </div>
-          <span className="font-bold text-sm">Restaurante AI</span>
+          <span className="font-bold text-sm t-primary">Restaurante AI</span>
         </div>
 
         {/* Nav */}
@@ -60,7 +77,7 @@ export default function DashboardLayout({ children }: Props) {
           if (visibleItems.length === 0) return null;
           return (
             <div key={section.title} className="mb-2">
-              <div className="text-[10px] uppercase tracking-[1.5px] text-slate-500 px-3 mb-2">
+              <div className="text-[10px] uppercase tracking-[1.5px] px-3 mb-2 font-semibold t-faint">
                 {section.title}
               </div>
               {visibleItems.map(item => {
@@ -73,7 +90,7 @@ export default function DashboardLayout({ children }: Props) {
                     className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all
                       ${isActive
                         ? 'text-accent bg-accent/10'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+                        : 't-muted hover:t-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
                       }`}
                   >
                     <span className={isActive ? 'opacity-100' : 'opacity-60'}>{item.icon}</span>
@@ -85,30 +102,43 @@ export default function DashboardLayout({ children }: Props) {
           );
         })}
 
+        {/* Theme toggle */}
+        <div className="mt-4 mb-2">
+          <ThemeToggle />
+        </div>
+
         {/* User */}
         <div className="mt-auto glass-card !p-3 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-dark to-accent flex items-center justify-center text-xs font-bold">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-dark to-accent flex items-center justify-center text-xs font-bold text-white">
             {user?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold truncate">{user?.name}</div>
-            <div className="text-[10px] text-slate-500 capitalize">{user?.role === 'waiter' ? 'Mesero' : user?.role === 'cook' ? 'Cocina' : 'Gerente'}</div>
+            <div className="text-xs font-semibold truncate t-primary">{user?.name}</div>
+            <div className="text-[10px] t-faint capitalize">
+              {user?.role === 'waiter' ? 'Mesero' : user?.role === 'cook' ? 'Cocina' : 'Gerente'}
+            </div>
           </div>
-          <button onClick={handleLogout} className="text-slate-500 hover:text-red-400 transition-colors">
+          <button onClick={handleLogout} className="t-faint hover:text-red-400 transition-colors">
             <LogOut size={16} />
           </button>
         </div>
       </aside>
 
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between border-b border-white/[0.08] bg-dark-900/80 backdrop-blur-xl">
+      <div
+        className="lg:hidden fixed top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between backdrop-blur-xl"
+        style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-sidebar)' }}
+      >
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center text-sm">🍽</div>
-          <span className="font-bold text-sm">Restaurante AI</span>
+          <span className="font-bold text-sm t-primary">Restaurante AI</span>
         </div>
-        <button onClick={handleLogout} className="text-slate-500 hover:text-red-400">
-          <LogOut size={18} />
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle compact />
+          <button onClick={handleLogout} className="t-faint hover:text-red-400 transition-colors">
+            <LogOut size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Content */}

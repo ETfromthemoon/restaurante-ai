@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { UtensilsCrossed, ChefHat, Briefcase } from 'lucide-react';
+import { useTheme } from '../store/useTheme';
+import { UtensilsCrossed, ChefHat, Briefcase, Sun, Moon } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, orderLoading: loading } = useAppStore();
+  const { isDark, toggle } = useTheme();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,17 +25,33 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: '#060b14' }}>
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ background: 'var(--bg-base)' }}
+    >
       {/* Glow */}
-      <div className="absolute w-[500px] h-[500px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 blur-[150px] opacity-[0.08] pointer-events-none" />
+      <div className="absolute w-[500px] h-[500px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 blur-[150px]"
+           style={{ opacity: 'var(--glow-opacity)', pointerEvents: 'none' }} />
+
+      {/* Theme toggle — top right */}
+      <button
+        onClick={toggle}
+        title={isDark ? 'Modo claro' : 'Modo oscuro'}
+        className="absolute top-4 right-4 z-10 btn-ghost !px-3 !py-2"
+      >
+        {isDark
+          ? <><Sun size={15} className="text-yellow-400" /><span className="text-xs">Claro</span></>
+          : <><Moon size={15} className="text-indigo-500" /><span className="text-xs">Oscuro</span></>
+        }
+      </button>
 
       <div className="glass-strong glow-soft w-full max-w-sm p-8 relative z-10">
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center text-2xl mx-auto mb-5">
             🍽
           </div>
-          <h1 className="text-xl font-bold">Restaurante AI</h1>
-          <p className="text-slate-500 text-sm mt-1">Inicia sesión para gestionar tu restaurante</p>
+          <h1 className="text-xl font-bold t-primary">Restaurante AI</h1>
+          <p className="text-sm mt-1 t-muted">Inicia sesión para gestionar tu restaurante</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -54,14 +72,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-accent w-full justify-center !py-3 !mt-4 disabled:opacity-50"
+            className="btn-accent w-full justify-center !py-3 !mt-4"
           >
             {loading ? 'Ingresando...' : 'Iniciar Sesión'}
           </button>
         </form>
 
         <div className="mt-6">
-          <p className="text-center text-slate-600 text-[11px] mb-3">Acceso rápido demo</p>
+          <p className="text-center text-[11px] mb-3 t-faint">Acceso rápido demo</p>
           <div className="grid grid-cols-3 gap-2">
             <button onClick={() => fillDemo('waiter')} className="btn-ghost !py-2 justify-center text-xs gap-1.5">
               <UtensilsCrossed size={14} /> Mesero

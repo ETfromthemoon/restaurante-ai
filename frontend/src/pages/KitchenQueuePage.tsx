@@ -24,13 +24,13 @@ export default function KitchenQueuePage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Cola de Cocina</h1>
-        <p className="text-slate-500 text-sm mt-1">{sorted.length} pedido{sorted.length !== 1 ? 's' : ''} pendiente{sorted.length !== 1 ? 's' : ''}</p>
+        <p className="t-secondary text-sm mt-1">{sorted.length} pedido{sorted.length !== 1 ? 's' : ''} pendiente{sorted.length !== 1 ? 's' : ''}</p>
       </div>
 
       {sorted.length === 0 ? (
         <div className="text-center py-24">
           <CheckCircle size={48} className="text-accent mx-auto mb-4 opacity-50" />
-          <p className="text-slate-500 font-semibold">Sin pedidos pendientes</p>
+          <p className="t-secondary font-semibold">Sin pedidos pendientes</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -48,7 +48,7 @@ export default function KitchenQueuePage() {
                   <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
                     urgent
                       ? 'bg-red-500/20 text-red-400'
-                      : 'bg-white/[0.06] text-slate-400'
+                      : 'bg-black/[0.06] dark:bg-white/[0.06] t-secondary'
                   }`}>
                     hace {mins} min {urgent ? '🔥' : ''}
                   </span>
@@ -65,7 +65,7 @@ export default function KitchenQueuePage() {
                 ))}
 
                 {/* Progress bar */}
-                <div className="mt-4 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                <div className="mt-4 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
                   <div
                     className="h-full rounded-full transition-all"
                     style={{

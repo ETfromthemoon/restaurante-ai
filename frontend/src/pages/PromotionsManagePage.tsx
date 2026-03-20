@@ -123,7 +123,7 @@ export default function PromotionsManagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-6">
+    <div className="min-h-screen pb-6" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
       <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => navigate('/gerente')} className="text-red-200 text-lg">←</button>
@@ -138,13 +138,13 @@ export default function PromotionsManagePage() {
 
       {/* Formulario */}
       {showForm && (
-        <div className="bg-white mx-4 mt-4 rounded-xl p-4 shadow-sm space-y-3">
-          <h2 className="font-bold text-gray-700 text-sm">
+        <div className="card-mobile mx-4 mt-4 !p-4 space-y-3">
+          <h2 className="font-bold t-secondary text-sm">
             {editing ? `Editando: ${editing.name}` : 'Nueva promoción'}
           </h2>
 
           <input
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+            className="input-glass w-full !rounded-lg !py-2"
             placeholder="Nombre *"
             value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -159,7 +159,7 @@ export default function PromotionsManagePage() {
                 className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${
                   form.type === t
                     ? 'bg-red-500 text-white border-red-500'
-                    : 'bg-white text-gray-600 border-gray-200'
+                    : 'btn-ghost border'
                 }`}
               >
                 {t === '2x1' ? '2×1' : t === 'percentage' ? 'Porcentaje' : 'Monto fijo'}
@@ -169,7 +169,7 @@ export default function PromotionsManagePage() {
 
           {form.type !== '2x1' && (
             <input
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+              className="input-glass w-full !rounded-lg !py-2"
               placeholder={form.type === 'percentage' ? 'Porcentaje (ej: 20)' : 'Monto a descontar (S/)'}
               type="number"
               min="0"
@@ -181,7 +181,7 @@ export default function PromotionsManagePage() {
 
           {/* Aplica a */}
           <div>
-            <p className="text-xs text-gray-500 mb-1">Aplica a</p>
+            <p className="text-xs t-muted mb-1">Aplica a</p>
             <div className="flex gap-2">
               {(['all', 'category', 'item'] as PromotionAppliesTo[]).map(a => (
                 <button
@@ -190,7 +190,7 @@ export default function PromotionsManagePage() {
                   className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${
                     form.applies_to === a
                       ? 'bg-orange-500 text-white border-orange-500'
-                      : 'bg-white text-gray-600 border-gray-200'
+                      : 'btn-ghost border'
                   }`}
                 >
                   {a === 'all' ? 'Todo' : a === 'category' ? 'Categoría' : 'Plato'}
@@ -201,7 +201,7 @@ export default function PromotionsManagePage() {
 
           {form.applies_to === 'category' && (
             <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400 bg-white"
+              className="input-glass w-full !rounded-lg !py-2"
               value={form.target_id}
               onChange={e => setForm(f => ({ ...f, target_id: e.target.value }))}
             >
@@ -212,7 +212,7 @@ export default function PromotionsManagePage() {
 
           {form.applies_to === 'item' && (
             <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400 bg-white"
+              className="input-glass w-full !rounded-lg !py-2"
               value={form.target_id}
               onChange={e => setForm(f => ({ ...f, target_id: e.target.value }))}
             >
@@ -225,7 +225,7 @@ export default function PromotionsManagePage() {
 
           {/* Días */}
           <div>
-            <p className="text-xs text-gray-500 mb-1">Días activos</p>
+            <p className="text-xs t-muted mb-1">Días activos</p>
             <div className="flex gap-1">
               {DAYS.map(d => (
                 <button
@@ -234,7 +234,7 @@ export default function PromotionsManagePage() {
                   className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
                     form.days_of_week.includes(d.value)
                       ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-white text-gray-500 border-gray-200'
+                      : 'btn-ghost border'
                   }`}
                 >
                   {d.label}
@@ -246,19 +246,19 @@ export default function PromotionsManagePage() {
           {/* Horario */}
           <div className="flex gap-2">
             <div className="flex-1">
-              <p className="text-xs text-gray-500 mb-1">Hora inicio</p>
+              <p className="text-xs t-muted mb-1">Hora inicio</p>
               <input
                 type="time"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+                className="input-glass w-full !rounded-lg !py-2"
                 value={form.time_start}
                 onChange={e => setForm(f => ({ ...f, time_start: e.target.value }))}
               />
             </div>
             <div className="flex-1">
-              <p className="text-xs text-gray-500 mb-1">Hora fin</p>
+              <p className="text-xs t-muted mb-1">Hora fin</p>
               <input
                 type="time"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+                className="input-glass w-full !rounded-lg !py-2"
                 value={form.time_end}
                 onChange={e => setForm(f => ({ ...f, time_end: e.target.value }))}
               />
@@ -275,7 +275,7 @@ export default function PromotionsManagePage() {
             </button>
             <button
               onClick={closeForm}
-              className="flex-1 bg-gray-100 text-gray-600 rounded-xl py-2.5 font-bold text-sm"
+              className="btn-ghost flex-1 rounded-xl py-2.5 font-bold text-sm"
             >
               Cancelar
             </button>
@@ -284,25 +284,25 @@ export default function PromotionsManagePage() {
       )}
 
       {/* Lista de promociones */}
-      <div className="mt-4 divide-y divide-gray-100">
+      <div className="mt-4 divide-y" style={{ borderColor: 'var(--border)' }}>
         {promotions.length === 0 ? (
           <div className="text-center pt-16">
-            <p className="text-gray-400 font-medium">Sin promociones aún</p>
-            <p className="text-gray-300 text-sm mt-1">Crea tu primera promoción</p>
+            <p className="t-faint font-medium">Sin promociones aún</p>
+            <p className="t-faint text-sm mt-1">Crea tu primera promoción</p>
           </div>
         ) : (
           promotions.map(p => (
-            <div key={p.id} className="bg-white px-4 py-3 flex items-center gap-3">
+            <div key={p.id} className="px-4 py-3 flex items-center gap-3" style={{ background: 'var(--bg-surface-strong)' }}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className={`font-semibold text-sm truncate ${p.active ? 'text-gray-800' : 'text-gray-400'}`}>
+                  <p className={`font-semibold text-sm truncate ${p.active ? 't-primary' : 't-faint'}`}>
                     {p.name}
                   </p>
                   <span className="bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">
                     {typeLabel(p.type)}{p.type !== '2x1' ? ` ${p.value}` : ''}
                   </span>
                 </div>
-                <p className="text-gray-400 text-xs mt-0.5">
+                <p className="t-faint text-xs mt-0.5">
                   {p.applies_to === 'all' ? 'Todo el menú' :
                    p.applies_to === 'category' ? `Cat: ${p.target_id}` :
                    `Plato: ${menuItems.find(m => m.id === p.target_id)?.name ?? p.target_id}`}

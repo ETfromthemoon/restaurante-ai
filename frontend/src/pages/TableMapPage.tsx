@@ -57,7 +57,7 @@ export default function TableMapPage() {
     served: 'bg-blue-500', billing: 'bg-yellow-500',
   };
   const numberColor: Record<string, string> = {
-    free: 'text-slate-300', occupied: 'text-red-400', ready: 'text-accent-light',
+    free: 't-faint', occupied: 'text-red-400', ready: 'text-accent-light',
     served: 'text-blue-400', billing: 'text-yellow-400',
   };
 
@@ -66,7 +66,7 @@ export default function TableMapPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Mesas</h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="t-secondary text-sm mt-1">
             {occupied} ocupada{occupied !== 1 ? 's' : ''} · {free} libre{free !== 1 ? 's' : ''}
             {readyCount > 0 && <span className="text-accent ml-1">· {readyCount} lista{readyCount !== 1 ? 's' : ''}</span>}
           </p>
@@ -90,10 +90,10 @@ export default function TableMapPage() {
                 <div className={`absolute top-0 left-0 right-0 h-[3px] ${topBar[table.status]}`} />
               )}
 
-              <div className={`text-3xl font-bold mb-1 ${numberColor[table.status] ?? 'text-slate-300'}`}>
+              <div className={`text-3xl font-bold mb-1 ${numberColor[table.status] ?? 't-faint'}`}>
                 {table.number}
               </div>
-              <div className="text-[11px] text-slate-500 mb-2">{table.capacity} personas</div>
+              <div className="text-[11px] t-secondary mb-2">{table.capacity} personas</div>
               <StatusBadge status={table.status} />
 
               {hasNotification && (
@@ -102,7 +102,7 @@ export default function TableMapPage() {
                 </div>
               )}
               {wait && table.status !== 'free' && (
-                <div className="mt-1.5 text-[10px] text-slate-500">{wait}</div>
+                <div className="mt-1.5 text-[10px] t-secondary">{wait}</div>
               )}
             </GlassCard>
           );

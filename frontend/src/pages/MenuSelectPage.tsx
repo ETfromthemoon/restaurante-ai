@@ -105,7 +105,7 @@ export default function MenuSelectPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-24">
+    <div className="min-h-screen pb-24" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
       <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => navigate(-1)} className="text-red-200 text-lg">←</button>
@@ -117,20 +117,21 @@ export default function MenuSelectPage() {
 
       {/* Búsqueda y filtro de categorías */}
       {menuItems.length > 0 && (
-        <div className="sticky top-14 z-10 bg-white border-b border-gray-100 px-3 py-2 space-y-2">
+        <div className="sticky top-14 z-10 px-3 py-2 space-y-2" style={{ background: 'var(--bg-surface-strong)', borderBottom: '1px solid var(--border)' }}>
           <input
             type="text"
             placeholder="Buscar plato..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-red-400"
+            className="input-glass w-full !rounded-xl !py-2"
           />
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <button
               onClick={() => setCategory(null)}
               className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                !activeCategory ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-600 border-gray-200'
+                !activeCategory ? 'bg-red-500 text-white border-red-500' : 'btn-ghost border'
               }`}
+              style={activeCategory ? { borderColor: 'var(--border)' } : undefined}
             >
               Todos
             </button>
@@ -139,8 +140,9 @@ export default function MenuSelectPage() {
                 key={cat}
                 onClick={() => setCategory(activeCategory === cat ? null : cat)}
                 className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                  activeCategory === cat ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-600 border-gray-200'
+                  activeCategory === cat ? 'bg-red-500 text-white border-red-500' : 'btn-ghost border'
                 }`}
+                style={activeCategory !== cat ? { borderColor: 'var(--border)' } : undefined}
               >
                 {CATEGORY_ICONS[cat] ?? '🍴'} {cat}
               </button>
@@ -152,11 +154,11 @@ export default function MenuSelectPage() {
       {/* Estado del menú */}
       {menuLoading ? (
         <div className="flex flex-col items-center justify-center pt-24 gap-3">
-          <p className="text-gray-400 text-lg animate-pulse">Cargando menú...</p>
+          <p className="t-faint text-lg animate-pulse">Cargando menú...</p>
         </div>
       ) : menuItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center pt-24 gap-4">
-          <p className="text-gray-400 font-medium">No se pudo cargar el menú</p>
+          <p className="t-faint font-medium">No se pudo cargar el menú</p>
           <button
             onClick={() => fetchMenu()}
             className="bg-red-500 text-white px-6 py-2 rounded-xl font-semibold"
@@ -167,7 +169,7 @@ export default function MenuSelectPage() {
       ) : Object.keys(categories).length === 0 ? (
         <div className="flex flex-col items-center justify-center pt-24 gap-3">
           <p className="text-4xl">🔍</p>
-          <p className="text-gray-400 font-medium">Sin resultados para "{search}"</p>
+          <p className="t-faint font-medium">Sin resultados para "{search}"</p>
           <button onClick={() => { setSearch(''); setCategory(null); }} className="text-red-500 text-sm font-semibold">
             Limpiar filtros
           </button>
@@ -175,34 +177,34 @@ export default function MenuSelectPage() {
       ) : (
         Object.entries(categories).map(([category, items]) => (
           <div key={category}>
-            <div className="bg-gray-200 px-4 py-2 sticky top-14 z-10">
+            <div style={{ background: 'var(--border)', padding: '0.5rem 1rem' }} className="sticky top-14 z-10">
               <p className="text-xs font-bold text-red-500 uppercase tracking-wider">
                 {CATEGORY_ICONS[category] ?? '🍴'} {category}
               </p>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {items.map(item => {
                 const isAdded   = added.has(item.id);
                 const isLoading = adding === item.id;
                 const promo     = getPromoForItem(item);
                 return (
-                  <div key={item.id} className="bg-white px-4 py-3 flex items-center gap-3">
+                  <div key={item.id} className="px-4 py-3 flex items-center gap-3" style={{ background: 'var(--bg-surface-strong)' }}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-800 text-sm">{item.name}</p>
+                        <p className="font-semibold t-primary text-sm">{item.name}</p>
                         {promo && (
                           <span className="bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
                             {promoBadge(promo)}
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-400 text-xs mt-0.5">{item.description}</p>
+                      <p className="t-faint text-xs mt-0.5">{item.description}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         {promo && discountedPrice(item, promo) !== null ? (
                           <>
-                            <span className="text-gray-300 text-xs line-through block">S/ {item.price}</span>
+                            <span className="t-faint text-xs line-through block">S/ {item.price}</span>
                             <span className="font-bold text-orange-500 text-sm">S/ {discountedPrice(item, promo)!.toFixed(2)}</span>
                           </>
                         ) : promo?.type === '2x1' ? (
@@ -233,7 +235,7 @@ export default function MenuSelectPage() {
 
       {/* Botón ver pedido */}
       {added.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
+        <div className="fixed bottom-0 left-0 right-0 p-4" style={{ background: 'var(--bg-surface-strong)', borderTop: '1px solid var(--border)' }}>
           <button
             onClick={() => navigate(-1)}
             className="w-full bg-green-500 text-white rounded-xl py-3 font-bold"
@@ -246,16 +248,16 @@ export default function MenuSelectPage() {
       {/* Modal de notas */}
       {noteItem && (
         <div className="fixed inset-0 bg-black/50 z-20 flex items-end">
-          <div className="bg-white w-full rounded-t-2xl p-4 space-y-3">
+          <div className="w-full rounded-t-2xl p-4 space-y-3" style={{ background: 'var(--bg-surface-strong)' }}>
             <div>
-              <p className="font-bold text-gray-800">{noteItem.name}</p>
-              <p className="text-gray-400 text-xs">S/ {noteItem.price}</p>
+              <p className="font-bold t-primary">{noteItem.name}</p>
+              <p className="t-faint text-xs">S/ {noteItem.price}</p>
             </div>
-            <p className="text-gray-500 text-sm">¿Alguna indicación para cocina? (opcional)</p>
+            <p className="t-muted text-sm">¿Alguna indicación para cocina? (opcional)</p>
             <textarea
               autoFocus
               rows={2}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none outline-none focus:border-red-400"
+              className="input-glass w-full !rounded-xl !py-2 resize-none"
               placeholder="Ej: sin cebolla, término medio, sin gluten..."
               value={noteText}
               onChange={e => setNoteText(e.target.value)}
@@ -270,7 +272,7 @@ export default function MenuSelectPage() {
               </button>
               <button
                 onClick={() => setNoteItem(null)}
-                className="bg-gray-100 text-gray-600 rounded-xl px-4 font-bold"
+                className="btn-ghost rounded-xl px-4 font-bold"
               >
                 Cancelar
               </button>
@@ -282,34 +284,34 @@ export default function MenuSelectPage() {
       {/* Modal de sugerencias de maridaje */}
       {pairingItem && (
         <div className="fixed inset-0 bg-black/50 z-20 flex items-end">
-          <div className="bg-white w-full rounded-t-2xl p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+          <div className="w-full rounded-t-2xl p-4 space-y-3 max-h-[70vh] overflow-y-auto" style={{ background: 'var(--bg-surface-strong)' }}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-orange-500 font-semibold uppercase tracking-wider">✨ Sugerencias de maridaje</p>
-                <p className="font-bold text-gray-800 mt-0.5">Combina bien con {pairingItem.name}</p>
+                <p className="font-bold t-primary mt-0.5">Combina bien con {pairingItem.name}</p>
               </div>
               <button
                 onClick={() => setPairingItem(null)}
-                className="text-gray-400 text-xl leading-none"
+                className="t-faint text-xl leading-none"
               >×</button>
             </div>
 
             {pairingLoading ? (
               <div className="py-6 flex flex-col items-center gap-2">
                 <div className="w-6 h-6 border-2 border-orange-300 border-t-orange-500 rounded-full animate-spin" />
-                <p className="text-gray-400 text-sm">Claude está pensando...</p>
+                <p className="t-faint text-sm">Claude está pensando...</p>
               </div>
             ) : pairingSuggestions.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">No se obtuvieron sugerencias</p>
+              <p className="t-faint text-sm text-center py-4">No se obtuvieron sugerencias</p>
             ) : (
               <div className="space-y-3">
                 {pairingSuggestions.map((s, i) => {
                   const isAlreadyAdded = s.id ? added.has(s.id) : false;
                   return (
-                    <div key={i} className="border border-orange-100 rounded-xl p-3 flex items-center gap-3">
+                    <div key={i} className="rounded-xl p-3 flex items-center gap-3" style={{ border: '1px solid var(--border)' }}>
                       <div className="flex-1">
-                        <p className="font-semibold text-gray-800 text-sm">{s.name}</p>
-                        <p className="text-gray-400 text-xs mt-0.5 italic">"{s.reason}"</p>
+                        <p className="font-semibold t-primary text-sm">{s.name}</p>
+                        <p className="t-faint text-xs mt-0.5 italic">"{s.reason}"</p>
                         {s.price && <p className="text-red-500 font-bold text-xs mt-1">S/ {s.price}</p>}
                       </div>
                       {s.id && (
@@ -330,7 +332,7 @@ export default function MenuSelectPage() {
 
             <button
               onClick={() => setPairingItem(null)}
-              className="w-full bg-gray-100 text-gray-600 rounded-xl py-3 font-semibold text-sm"
+              className="btn-ghost w-full rounded-xl py-3 font-semibold text-sm"
             >
               Continuar sin agregar
             </button>

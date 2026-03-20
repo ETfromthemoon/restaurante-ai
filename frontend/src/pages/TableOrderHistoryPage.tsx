@@ -30,7 +30,7 @@ export default function TableOrderHistoryPage() {
   const tableNum = tableId?.replace('t', '');
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
       <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3">
         <button
@@ -46,7 +46,7 @@ export default function TableOrderHistoryPage() {
         {tableOrderHistory.length === 0 ? (
           <div className="text-center pt-20">
             <p className="text-4xl">📋</p>
-            <p className="text-gray-400 font-semibold mt-4">Sin historial de pedidos</p>
+            <p className="t-muted font-semibold mt-4">Sin historial de pedidos</p>
           </div>
         ) : (
           tableOrderHistory.map(order => {
@@ -54,12 +54,12 @@ export default function TableOrderHistoryPage() {
               (sum, i) => sum + (i.effective_price ?? i.menu_item?.price ?? 0) * i.quantity, 0
             ) ?? 0;
             return (
-              <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div key={order.id} className="card-mobile rounded-2xl overflow-hidden !p-0">
                 {/* Cabecera del pedido */}
-                <div className="px-4 py-3 flex items-center justify-between border-b border-gray-50">
+                <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
                   <div>
-                    <p className="font-bold text-gray-800 text-sm">{STATUS_LABEL[order.status] ?? order.status}</p>
-                    <p className="text-gray-400 text-xs mt-0.5">{formatDate(order.created_at)}</p>
+                    <p className="font-bold t-primary text-sm">{STATUS_LABEL[order.status] ?? order.status}</p>
+                    <p className="t-muted text-xs mt-0.5">{formatDate(order.created_at)}</p>
                   </div>
                   <span className="font-bold text-red-500 text-base">S/ {total.toFixed(2)}</span>
                 </div>
@@ -68,10 +68,10 @@ export default function TableOrderHistoryPage() {
                   <div className="px-4 py-2 space-y-1">
                     {order.items.map(item => (
                       <div key={item.id} className="flex justify-between items-center">
-                        <span className="text-gray-700 text-sm">
+                        <span className="t-secondary text-sm">
                           {item.quantity}× {item.menu_item?.name ?? item.menu_item_id}
                         </span>
-                        <span className="text-gray-400 text-xs">
+                        <span className="t-muted text-xs">
                           S/ {((item.effective_price ?? item.menu_item?.price ?? 0) * item.quantity).toFixed(2)}
                         </span>
                       </div>
