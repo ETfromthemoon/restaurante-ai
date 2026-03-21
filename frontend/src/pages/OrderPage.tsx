@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
+import { useToast } from '../hooks/useToast';
 import { OrderItem } from '../types';
 
 const ITEM_STATUS: Record<string, string> = {
@@ -28,6 +29,7 @@ function elapsed(iso?: string): string | null {
 export default function OrderPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
   const {
     currentOrder, fetchOrCreateOrder,
     removeOrderItem, updateOrderItemQuantity, sendOrderToKitchen,
@@ -56,27 +58,35 @@ export default function OrderPage() {
   const isOpen    = !currentOrder || currentOrder.status === 'open' || isServed;
 
   const handleKitchen = () => {
-    if (!currentOrder || !currentOrder.items?.length) { alert('Agrega al menos un plato.'); return; }
+    if (!currentOrder || !currentOrder.items?.length) { toast.warning('Agrega al menos un plato.'); return; }
     if (confirm(`Enviar ${currentOrder.items.length} platos a cocina?`)) {
       sendOrderToKitchen(currentOrder.id);
+      toast.success('Pedido enviado a cocina 🍳');
     }
   };
 
   const handleDeliver = () => {
     if (confirm('¿Marcar platos como entregados a la mesa?')) {
       markDelivered(currentOrder!.id);
+      toast.success('Platos entregados a la mesa 🛎️');
     }
   };
 
   const handleBilling = () => {
     if (confirm(`Solicitar cuenta? Total: S/ ${total.toFixed(2)}`)) {
-      if (currentOrder) requestBilling(currentOrder.id);
+      if (currentOrder) {
+        requestBilling(currentOrder.id);
+        toast.info('Cuenta solicitada — esperando cobro 💰');
+      }
     }
   };
 
   const handleCloseTable = () => {
     if (confirm(`¿Confirmar cobro de S/ ${total.toFixed(2)} y liberar la mesa?`)) {
-      closeTable(currentOrder!.id).then(() => navigate('/mesas'));
+      closeTable(currentOrder!.id).then(() => {
+        toast.success('Mesa liberada ✅');
+        navigate('/mesas');
+      });
     }
   };
 

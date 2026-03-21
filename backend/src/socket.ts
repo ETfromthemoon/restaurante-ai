@@ -31,6 +31,12 @@ export function initSocket(httpServer: HttpServer): Server {
 }
 
 export function getIO(): Server {
-  if (!io) throw new Error('Socket no inicializado');
+  if (!io) {
+    if (process.env.NODE_ENV === 'test') {
+      // Mock silencioso para tests de integración — no emite eventos reales
+      return { to: () => ({ emit: () => {}, to: () => ({ emit: () => {} }) }) } as any;
+    }
+    throw new Error('Socket no inicializado');
+  }
   return io;
 }

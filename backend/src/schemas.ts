@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Request, Response, NextFunction } from 'express';
 
 // --- Menu ---
 export const createMenuItemSchema = z.object({
@@ -76,6 +77,33 @@ export const updatePromotionSchema = z.object({
   time_end: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   active: z.boolean().optional(),
 });
+
+// --- Param schemas ---
+export const idParamSchema = z.object({
+  id: z.string().min(1, 'ID requerido'),
+});
+
+export const itemIdParamSchema = z.object({
+  itemId: z.string().min(1, 'itemId requerido'),
+});
+
+export const tableIdParamSchema = z.object({
+  tableId: z.string().min(1, 'tableId requerido'),
+});
+
+/** Middleware reutilizable para validar req.params con un schema Zod */
+export function validateParams<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const result = schema.safeParse(req.params);
+    if (!result.success) {
+      const issues = result.error.issues;
+      const msg = issues.length > 0 ? issues[0].message : 'Parámetro de ruta inválido';
+      res.status(400).json({ error: msg });
+      return;
+    }
+    next();
+  };
+}
 
 /** Helper para validar y responder con error 400 si falla */
 export function validate<T>(schema: z.ZodSchema<T>, data: unknown): { success: true; data: T } | { success: false; error: string } {

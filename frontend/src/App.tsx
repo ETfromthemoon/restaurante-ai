@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAppStore } from './store/useAppStore';
 import { socketService } from './services/socketService';
+import { ToastProvider, useToast } from './hooks/useToast';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 import PWAInstallBanner from './components/ui/PWAInstallBanner';
+import ToastContainer  from './components/ui/ToastContainer';
 import LoginPage                from './pages/LoginPage';
 import TableMapPage             from './pages/TableMapPage';
 import OrderPage                from './pages/OrderPage';
@@ -19,16 +21,30 @@ import CajaPage                 from './pages/CajaPage';
 import CajaHistorialPage        from './pages/CajaHistorialPage';
 import TableAssignmentPage      from './pages/TableAssignmentPage';
 
-export default function App() {
+// Componente interno que ya tiene acceso al ToastContext
+function AppInner() {
   const { user, token, error, clearError, handleOrderUpdated, handleTableUpdated, handleOrderReady, handleItemStatus } = useAppStore();
+  const toast = useToast();
 
+  // Toast de bienvenida al iniciar sesión
+  const prevUserId = useRef<string | null>(null);
+  useEffect(() => {
+    if (user && user.id !== prevUserId.current) {
+      const roleLabel = user.role === 'cook' ? 'Cocinero' : user.role === 'manager' ? 'Gerente' : 'Mesero';
+      toast.success(`Bienvenido, ${user.name} (${roleLabel}) 👋`);
+    }
+    prevUserId.current = user?.id ?? null;
+  }, [user?.id]);
+
+  // Reemplaza alert(error) — muestra toast rojo no bloqueante
   useEffect(() => {
     if (error) {
-      alert(error);
+      toast.error(error);
       clearError();
     }
   }, [error]);
 
+  // Socket.io — conectar al autenticarse
   useEffect(() => {
     if (!user || !token) return;
     socketService.connect(token);
@@ -73,8 +89,19 @@ export default function App() {
         <Route path="*" element={<Navigate to={home} />} />
       </Routes>
 
-      {/* Banner de instalación PWA — se muestra automáticamente */}
+      {/* Toasts — top-right, z-[100] */}
+      <ToastContainer />
+
+      {/* Banner de instalación PWA */}
       <PWAInstallBanner />
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
   );
 }

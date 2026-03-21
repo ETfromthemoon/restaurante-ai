@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { validateParams, idParamSchema } from '../schemas';
 import {
   getActiveCajaSession, getCajaSessions, getCajaSessionById,
   insertCajaSession, closeCajaSession,
@@ -48,7 +49,7 @@ router.post('/open', (req: AuthRequest, res: Response): void => {
 });
 
 // PATCH /api/caja/:id/close — cerrar turno (manager)
-router.patch('/:id/close', (req: AuthRequest, res: Response): void => {
+router.patch('/:id/close', validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   if (req.user?.role !== 'manager') {
     res.status(403).json({ error: 'Solo gerentes pueden cerrar caja' });
     return;
@@ -68,7 +69,7 @@ router.patch('/:id/close', (req: AuthRequest, res: Response): void => {
 });
 
 // GET /api/caja/:id/summary — resumen de una sesión
-router.get('/:id/summary', (req: AuthRequest, res: Response): void => {
+router.get('/:id/summary', validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   if (req.user?.role !== 'manager') {
     res.status(403).json({ error: 'Solo gerentes pueden ver el resumen de caja' });
     return;
