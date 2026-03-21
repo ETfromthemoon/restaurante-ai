@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useTheme } from '../store/useTheme';
-import { UtensilsCrossed, ChefHat, Briefcase, Sun, Moon } from 'lucide-react';
+import { usePWAInstall } from '../hooks/usePWAInstall';
+import { UtensilsCrossed, ChefHat, Briefcase, Sun, Moon, Download, Share2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, orderLoading: loading } = useAppStore();
   const { isDark, toggle } = useTheme();
+  const { canInstall, isIOS, isInstalled, promptInstall } = usePWAInstall();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +95,28 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Aviso de instalación PWA — solo si no está instalada */}
+      {!isInstalled && (canInstall || isIOS) && (
+        <div className="absolute bottom-6 left-0 right-0 flex justify-center px-4">
+          {canInstall ? (
+            <button
+              onClick={promptInstall}
+              className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full
+                         bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20"
+            >
+              <Download size={13} />
+              Instalar como app
+            </button>
+          ) : (
+            <p className="flex items-center gap-1.5 text-xs t-faint text-center">
+              <Share2 size={12} />
+              Para instalar: toca{' '}
+              <span className="font-semibold t-muted">Compartir → Añadir a pantalla de inicio</span>
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

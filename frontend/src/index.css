@@ -144,3 +144,12 @@ body {
   transition: background 0.25s ease, border-color 0.25s ease,
               box-shadow 0.25s ease, color 0.25s ease;
 }
+
+/* ─── PWA Install Banner ─────────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}

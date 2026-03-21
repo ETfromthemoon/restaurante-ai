@@ -4,6 +4,7 @@ import { useAppStore } from './store/useAppStore';
 import { socketService } from './services/socketService';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
+import PWAInstallBanner from './components/ui/PWAInstallBanner';
 import LoginPage                from './pages/LoginPage';
 import TableMapPage             from './pages/TableMapPage';
 import OrderPage                from './pages/OrderPage';
@@ -71,6 +72,9 @@ export default function App() {
 
         <Route path="*" element={<Navigate to={home} />} />
       </Routes>
+
+      {/* Banner de instalación PWA — se muestra automáticamente */}
+      <PWAInstallBanner />
     </BrowserRouter>
   );
 }

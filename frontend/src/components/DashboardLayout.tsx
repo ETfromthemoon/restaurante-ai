@@ -1,8 +1,9 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, UtensilsCrossed, ChefHat, BookOpen, Wallet, Tag, LogOut, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, ChefHat, BookOpen, Wallet, Tag, LogOut, Sun, Moon, Download } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useTheme } from '../store/useTheme';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface Props { children: ReactNode; }
 
@@ -52,8 +53,12 @@ export default function DashboardLayout({ children }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAppStore();
+  const { canInstall, isIOS, isInstalled, promptInstall } = usePWAInstall();
 
   const handleLogout = () => { logout(); navigate('/login'); };
+
+  // Mostrar botón si hay prompt disponible (Chrome) o es iOS no instalada
+  const showInstallBtn = !isInstalled && (canInstall || isIOS);
 
   return (
     <div className="flex min-h-screen relative">
@@ -107,6 +112,19 @@ export default function DashboardLayout({ children }: Props) {
           <ThemeToggle />
         </div>
 
+        {/* Botón instalar PWA */}
+        {showInstallBtn && (
+          <button
+            onClick={isIOS ? undefined : promptInstall}
+            title={isIOS ? 'Toca Compartir → Añadir a pantalla de inicio' : 'Instalar como app'}
+            className="flex items-center gap-1.5 w-full rounded-xl px-3 py-2 text-xs font-semibold
+                       bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors mb-2"
+          >
+            <Download size={13} />
+            {isIOS ? 'Cómo instalar la app' : 'Instalar app'}
+          </button>
+        )}
+
         {/* User */}
         <div className="mt-auto glass-card !p-3 flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-dark to-accent flex items-center justify-center text-xs font-bold text-white">
@@ -134,6 +152,15 @@ export default function DashboardLayout({ children }: Props) {
           <span className="font-bold text-sm t-primary">Restaurante AI</span>
         </div>
         <div className="flex items-center gap-2">
+          {showInstallBtn && (
+            <button
+              onClick={isIOS ? undefined : promptInstall}
+              title={isIOS ? 'Cómo instalar' : 'Instalar app'}
+              className="t-faint hover:text-red-400 transition-colors"
+            >
+              <Download size={18} />
+            </button>
+          )}
           <ThemeToggle compact />
           <button onClick={handleLogout} className="t-faint hover:text-red-400 transition-colors">
             <LogOut size={18} />
