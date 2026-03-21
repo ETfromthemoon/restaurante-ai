@@ -3,13 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <!-- ─── PWA Básico ──────────────────────────────────────────────────── -->
     <meta name="theme-color" content="#E74C3C" />
+    <meta name="description" content="Sistema de gestión de restaurante con inteligencia artificial" />
+
+    <!-- ─── iOS / Safari ────────────────────────────────────────────────── -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Restaurante AI" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RestIA" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+
+    <!-- ─── Splash screen iOS (portrait) ────────────────────────────────── -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- ─── Android / Chrome ────────────────────────────────────────────── -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="RestIA" />
+
+    <!-- ─── Microsoft Tiles ─────────────────────────────────────────────── -->
+    <meta name="msapplication-TileColor" content="#E74C3C" />
+    <meta name="msapplication-TileImage" content="/icon-192.png" />
+
+    <!-- ─── Open Graph (compartir en redes) ─────────────────────────────── -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:title"       content="Restaurante AI" />
+    <meta property="og:description" content="Sistema de gestión de restaurante con IA" />
+    <meta property="og:image"       content="/icon-512.png" />
+
     <title>Restaurante AI</title>
   </head>
-  <body class="bg-gray-100">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
