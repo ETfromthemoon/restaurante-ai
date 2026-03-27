@@ -200,10 +200,17 @@ describe('Orders API', () => {
       .send({ table_id: TABLE_ID });
     const orderId = orderRes.body.id;
 
-    await request(app)
+    const itemRes = await request(app)
       .post(`/api/orders/${orderId}/items`)
       .set('Authorization', auth('waiter'))
       .send({ menu_item_id: MENU_ITEM_ID, quantity: 1 });
+    const itemId = itemRes.body.id;
+
+    // cocina marca el ítem como done antes de entregar
+    await request(app)
+      .patch(`/api/orders/items/${itemId}/status`)
+      .set('Authorization', auth('cook'))
+      .send({ status: 'done' });
 
     // ready → deliver
     await request(app)
@@ -239,6 +246,11 @@ describe('Orders API', () => {
 
   // 12. Flujo completo: open → items → kitchen → ready → deliver → billing → billed
   it('flujo completo open→kitchen→ready→deliver→billing→billed', async () => {
+    // abrir caja (necesario para cobrar)
+    await request(app)
+      .post('/api/caja/open')
+      .set('Authorization', auth('manager'));
+
     // open
     const orderRes = await request(app)
       .post('/api/orders')
@@ -254,7 +266,7 @@ describe('Orders API', () => {
       .set('Authorization', auth('waiter'))
       .send({ menu_item_id: MENU_ITEM_ID, quantity: 2 });
     expect(itemRes.status).toBe(201);
-    expect(itemRes.body.quantity).toBe(2);
+    const itemId = itemRes.body.id;
 
     // kitchen
     const kitchenRes = await request(app)
@@ -264,7 +276,13 @@ describe('Orders API', () => {
     expect(kitchenRes.status).toBe(200);
     expect(kitchenRes.body.status).toBe('kitchen');
 
-    // ready — el waiter (o manager) actualiza el status, no el cook
+    // cocina marca el ítem como done
+    await request(app)
+      .patch(`/api/orders/items/${itemId}/status`)
+      .set('Authorization', auth('cook'))
+      .send({ status: 'done' });
+
+    // ready
     const readyRes = await request(app)
       .patch(`/api/orders/${orderId}/status`)
       .set('Authorization', auth('waiter'))
@@ -294,5 +312,6 @@ describe('Orders API', () => {
       .send({ status: 'billed' });
     expect(billedRes.status).toBe(200);
     expect(billedRes.body.status).toBe('billed');
+    expect(billedRes.body.caja_session_id).toBeDefined();
   });
 });

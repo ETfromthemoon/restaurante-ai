@@ -136,11 +136,17 @@ router.patch('/:id/status', requirePermission('orders', 'updateStatus'), validat
   const v = validate(updateOrderStatusSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const { status } = v.data;
-  updateOrder(order.id, { status });
 
+  // Bug #1 fix: bloquear cobro si no hay sesión de caja activa
   if (status === 'billed') {
     const session = getActiveCajaSession();
-    if (session) updateOrder(order.id, { caja_session_id: session.id, cashier_id: session.cashier_id });
+    if (!session) {
+      res.status(409).json({ error: 'No hay una sesión de caja abierta. Abre la caja antes de cobrar.' });
+      return;
+    }
+    updateOrder(order.id, { status, caja_session_id: session.id, cashier_id: session.cashier_id });
+  } else {
+    updateOrder(order.id, { status });
   }
 
   const now = new Date().toISOString();
@@ -169,6 +175,15 @@ router.post('/:id/items', requirePermission('orders', 'addItem'), validateParams
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
     return;
+  }
+
+  // Bug #2 fix: verificar que el mesero sigue asignado a la mesa del pedido
+  if (req.user!.role === 'waiter') {
+    const table = getTableById(order.table_id);
+    if (table && table.assigned_waiter_id && table.assigned_waiter_id !== req.user!.id) {
+      res.status(403).json({ error: 'Esta mesa ya no está asignada a ti.' });
+      return;
+    }
   }
 
   const v = validate(addOrderItemSchema, req.body);
@@ -266,6 +281,15 @@ router.patch('/:id/items/:itemId', requirePermission('orders', 'updateItem'), va
     return;
   }
 
+  // Bug #2 fix: verificar que el mesero sigue asignado a la mesa del pedido
+  if (req.user!.role === 'waiter') {
+    const table = getTableById(order.table_id);
+    if (table && table.assigned_waiter_id && table.assigned_waiter_id !== req.user!.id) {
+      res.status(403).json({ error: 'Esta mesa ya no está asignada a ti.' });
+      return;
+    }
+  }
+
   const item = getOrderItemById(req.params.itemId);
   if (!item) {
     res.status(404).json({ error: 'Item no encontrado' });
@@ -322,6 +346,18 @@ router.patch('/:id/deliver', requirePermission('orders', 'deliver'), validatePar
     res.status(404).json({ error: 'Pedido no encontrado' });
     return;
   }
+
+  // Bug #3 fix: validar que todos los ítems estén listos antes de entregar
+  const items = getItemsByOrderId(order.id);
+  const pendingItems = items.filter(i => i.status !== 'done');
+  if (pendingItems.length > 0) {
+    res.status(409).json({
+      error: `Hay ${pendingItems.length} ítem(s) que cocina aún no ha terminado.`,
+      pending_items: pendingItems.map(i => ({ id: i.id, menu_item_id: i.menu_item_id, status: i.status })),
+    });
+    return;
+  }
+
   const now = new Date().toISOString();
   updateOrder(order.id, { delivered_at: now });
   updateTable(order.table_id, { status: 'served', last_interaction_at: now });
