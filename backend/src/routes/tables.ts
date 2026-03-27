@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { getTables, getTableById, updateTable, getWaiters } from '../db/store';
-import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requireRole, requirePermission } from '../middleware/auth';
 import { getIO } from '../socket';
 import { validate, updateTableStatusSchema, assignWaiterSchema } from '../schemas';
 
@@ -12,7 +12,7 @@ router.get('/', (_req: AuthRequest, res: Response): void => {
 });
 
 // GET /api/tables/waiters
-router.get('/waiters', (_req: AuthRequest, res: Response): void => {
+router.get('/waiters', requirePermission('tables', 'listWaiters'), (_req: AuthRequest, res: Response): void => {
   res.json(getWaiters());
 });
 
@@ -28,7 +28,7 @@ router.patch('/:id/assign', requireRole('manager'), (req: AuthRequest, res: Resp
   res.json(updated);
 });
 
-router.patch('/:id', (req: AuthRequest, res: Response): void => {
+router.patch('/:id', requirePermission('tables', 'update'), (req: AuthRequest, res: Response): void => {
   const table = getTableById(req.params.id);
   if (!table) { res.status(404).json({ error: 'Mesa no encontrada' }); return; }
   const v = validate(updateTableStatusSchema, req.body);

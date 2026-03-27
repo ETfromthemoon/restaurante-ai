@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { getPromotions, getActivePromotions, insertPromotion, updatePromotion } from '../db/store';
-import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requirePermission } from '../middleware/auth';
 import { Promotion } from '../types';
 import { validate, createPromotionSchema, updatePromotionSchema } from '../schemas';
 
@@ -8,12 +8,12 @@ const router = Router();
 router.use(authMiddleware);
 
 // GET /api/promotions — todas (manager)
-router.get('/', requireRole('manager'), (_req: AuthRequest, res: Response): void => {
+router.get('/', requirePermission('promotions', 'list'), (_req: AuthRequest, res: Response): void => {
   res.json(getPromotions());
 });
 
 // GET /api/promotions/active — activas ahora (waiter)
-router.get('/active', (_req: AuthRequest, res: Response): void => {
+router.get('/active', requirePermission('promotions', 'listActive'), (_req: AuthRequest, res: Response): void => {
   const now = new Date();
   const day = now.getDay() || 7;
   const hhmm = now.toTimeString().slice(0, 5);
@@ -24,7 +24,7 @@ router.get('/active', (_req: AuthRequest, res: Response): void => {
 });
 
 // POST /api/promotions — crear (manager)
-router.post('/', requireRole('manager'), (req: AuthRequest, res: Response): void => {
+router.post('/', requirePermission('promotions', 'create'), (req: AuthRequest, res: Response): void => {
   const v = validate(createPromotionSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const promo = insertPromotion({
@@ -35,7 +35,7 @@ router.post('/', requireRole('manager'), (req: AuthRequest, res: Response): void
 });
 
 // PATCH /api/promotions/:id — editar / toggle (manager)
-router.patch('/:id', requireRole('manager'), (req: AuthRequest, res: Response): void => {
+router.patch('/:id', requirePermission('promotions', 'update'), (req: AuthRequest, res: Response): void => {
   const v = validate(updatePromotionSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const updated = updatePromotion(req.params.id, v.data);

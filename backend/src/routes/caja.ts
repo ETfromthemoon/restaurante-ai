@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
 import { validateParams, idParamSchema } from '../schemas';
 import {
   getActiveCajaSession, getCajaSessions, getCajaSessionById,
@@ -19,20 +19,12 @@ router.get('/active', (_req: AuthRequest, res: Response): void => {
 });
 
 // GET /api/caja — historial (manager)
-router.get('/', (req: AuthRequest, res: Response): void => {
-  if (req.user?.role !== 'manager') {
-    res.status(403).json({ error: 'Solo gerentes pueden ver el historial de caja' });
-    return;
-  }
+router.get('/', requireRole('manager'), (_req: AuthRequest, res: Response): void => {
   res.json(getCajaSessions());
 });
 
 // POST /api/caja/open — abrir turno (manager)
-router.post('/open', (req: AuthRequest, res: Response): void => {
-  if (req.user?.role !== 'manager') {
-    res.status(403).json({ error: 'Solo gerentes pueden abrir caja' });
-    return;
-  }
+router.post('/open', requireRole('manager'), (req: AuthRequest, res: Response): void => {
   const existing = getActiveCajaSession();
   if (existing) {
     res.status(409).json({ error: 'Ya hay una sesión de caja activa', session: existing });
@@ -49,11 +41,7 @@ router.post('/open', (req: AuthRequest, res: Response): void => {
 });
 
 // PATCH /api/caja/:id/close — cerrar turno (manager)
-router.patch('/:id/close', validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
-  if (req.user?.role !== 'manager') {
-    res.status(403).json({ error: 'Solo gerentes pueden cerrar caja' });
-    return;
-  }
+router.patch('/:id/close', requireRole('manager'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const session = getCajaSessionById(req.params.id);
   if (!session) {
     res.status(404).json({ error: 'Sesión de caja no encontrada' });
@@ -69,11 +57,7 @@ router.patch('/:id/close', validateParams(idParamSchema), (req: AuthRequest, res
 });
 
 // GET /api/caja/:id/summary — resumen de una sesión
-router.get('/:id/summary', validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
-  if (req.user?.role !== 'manager') {
-    res.status(403).json({ error: 'Solo gerentes pueden ver el resumen de caja' });
-    return;
-  }
+router.get('/:id/summary', requireRole('manager'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const session = getCajaSessionById(req.params.id);
   if (!session) {
     res.status(404).json({ error: 'Sesión de caja no encontrada' });

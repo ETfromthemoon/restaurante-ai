@@ -264,10 +264,10 @@ describe('Orders API', () => {
     expect(kitchenRes.status).toBe(200);
     expect(kitchenRes.body.status).toBe('kitchen');
 
-    // ready
+    // ready — el waiter (o manager) actualiza el status, no el cook
     const readyRes = await request(app)
       .patch(`/api/orders/${orderId}/status`)
-      .set('Authorization', auth('cook'))
+      .set('Authorization', auth('waiter'))
       .send({ status: 'ready' });
     expect(readyRes.status).toBe(200);
     expect(readyRes.body.status).toBe('ready');

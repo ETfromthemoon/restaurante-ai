@@ -10,7 +10,7 @@ import {
   getCurrentRound, getOrdersByTable,
   adjustStock, getActiveCajaSession,
 } from '../db/store';
-import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requireRole, requirePermission } from '../middleware/auth';
 import { Order, OrderItem, OrderStatus, OrderItemStatus, Promotion, MenuItem } from '../types';
 import { getIO } from '../socket';
 import { validate, validateParams, idParamSchema, itemIdParamSchema, tableIdParamSchema, createOrderSchema, updateOrderStatusSchema, addOrderItemSchema, updateOrderItemQtySchema, updateOrderItemStatusSchema } from '../schemas';
@@ -97,7 +97,7 @@ router.get('/:id', validateParams(idParamSchema), (req: AuthRequest, res: Respon
 });
 
 // POST /api/orders — crear pedido (idempotente) - solo mesero/manager
-router.post('/', requireRole('waiter', 'manager'), (req: AuthRequest, res: Response): void => {
+router.post('/', requirePermission('orders', 'create'), (req: AuthRequest, res: Response): void => {
   const v = validate(createOrderSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const { table_id } = v.data;
@@ -126,7 +126,7 @@ router.post('/', requireRole('waiter', 'manager'), (req: AuthRequest, res: Respo
 });
 
 // PATCH /api/orders/:id/status
-router.patch('/:id/status', validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
+router.patch('/:id/status', requirePermission('orders', 'updateStatus'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
@@ -164,7 +164,7 @@ router.patch('/:id/status', validateParams(idParamSchema), (req: AuthRequest, re
 });
 
 // POST /api/orders/:id/items
-router.post('/:id/items', requireRole('waiter', 'manager'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
+router.post('/:id/items', requirePermission('orders', 'addItem'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
@@ -259,7 +259,7 @@ router.post('/:id/items', requireRole('waiter', 'manager'), validateParams(idPar
 });
 
 // PATCH /api/orders/:id/items/:itemId — actualizar cantidad
-router.patch('/:id/items/:itemId', validateParams(idParamSchema), validateParams(itemIdParamSchema), (req: AuthRequest, res: Response): void => {
+router.patch('/:id/items/:itemId', requirePermission('orders', 'updateItem'), validateParams(idParamSchema), validateParams(itemIdParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
@@ -305,7 +305,7 @@ router.patch('/:id/items/:itemId', validateParams(idParamSchema), validateParams
 });
 
 // DELETE /api/orders/:id/items/:itemId
-router.delete('/:id/items/:itemId', validateParams(idParamSchema), validateParams(itemIdParamSchema), (req: AuthRequest, res: Response): void => {
+router.delete('/:id/items/:itemId', requirePermission('orders', 'deleteItem'), validateParams(idParamSchema), validateParams(itemIdParamSchema), (req: AuthRequest, res: Response): void => {
   const item = getOrderItemById(req.params.itemId);
   if (item) {
     const mi = getMenuItemById(item.menu_item_id);
@@ -316,7 +316,7 @@ router.delete('/:id/items/:itemId', validateParams(idParamSchema), validateParam
 });
 
 // PATCH /api/orders/:id/deliver
-router.patch('/:id/deliver', validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
+router.patch('/:id/deliver', requirePermission('orders', 'deliver'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
@@ -329,7 +329,7 @@ router.patch('/:id/deliver', validateParams(idParamSchema), (req: AuthRequest, r
 });
 
 // PATCH /api/orders/items/:itemId/status — solo cocina/manager
-router.patch('/items/:itemId/status', requireRole('cook', 'manager'), (req: AuthRequest, res: Response): void => {
+router.patch('/items/:itemId/status', requirePermission('orders', 'updateItemStatus'), (req: AuthRequest, res: Response): void => {
   const item = getOrderItemById(req.params.itemId);
   if (!item) {
     res.status(404).json({ error: 'Item no encontrado' });

@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
-import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requireRole, requirePermission } from '../middleware/auth';
 import { getMenuItemById, getMenuItems } from '../db/store';
 import { db } from '../db/database';
 
@@ -12,7 +12,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 // ---------------------------------------------------------------------------
 // 4.1  POST /api/ai/pairing  — sugerencias de maridaje
 // ---------------------------------------------------------------------------
-router.post('/pairing', async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/pairing', requirePermission('ai', 'pairing'), async (req: AuthRequest, res: Response): Promise<void> => {
   const { itemId } = req.body as { itemId?: string };
   if (!itemId) { res.status(400).json({ error: 'Falta itemId' }); return; }
 
@@ -153,7 +153,7 @@ Escribe un resumen ejecutivo breve (3-5 oraciones) y amigable en español. Menci
 // ---------------------------------------------------------------------------
 // 4.3  GET /api/ai/delay-check  — detección de pedidos demorados
 // ---------------------------------------------------------------------------
-router.get('/delay-check', async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/delay-check', requirePermission('ai', 'delayCheck'), async (_req: AuthRequest, res: Response): Promise<void> => {
   // Promedio histórico (últimos 30 días, pedidos completados)
   const histRow = db.prepare(`
     SELECT AVG((JULIANDAY(delivered_at) - JULIANDAY(created_at)) * 1440) AS avg_minutes
@@ -211,7 +211,7 @@ Redacta un alerta corta y accionable (1-2 oraciones) para el gerente, en españo
 // ---------------------------------------------------------------------------
 // 4.4  GET /api/ai/menu-recommendations  — recomendaciones por hora
 // ---------------------------------------------------------------------------
-router.get('/menu-recommendations', async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/menu-recommendations', requirePermission('ai', 'menuRecommendations'), async (_req: AuthRequest, res: Response): Promise<void> => {
   const hour = new Date().getHours();
   const period = hour < 12 ? 'mañana' : hour < 16 ? 'almuerzo' : hour < 20 ? 'tarde' : 'noche';
 

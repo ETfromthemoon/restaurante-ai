@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { canAccess } from '../config/permissions.config';
 
 // JWT_SECRET: obligatorio en produccion, auto-generado en desarrollo
 const envSecret = process.env.JWT_SECRET;
@@ -18,6 +19,21 @@ export interface AuthRequest extends Request {
 export function requireRole(...roles: string[]) {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user || !roles.includes(req.user.role)) {
+      res.status(403).json({ error: 'No tienes permisos para esta acción' });
+      return;
+    }
+    next();
+  };
+}
+
+/** Middleware basado en la matriz centralizada de permisos */
+export function requirePermission(resource: string, action: string) {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ error: 'No autorizado' });
+      return;
+    }
+    if (!canAccess(req.user.role, resource, action)) {
       res.status(403).json({ error: 'No tienes permisos para esta acción' });
       return;
     }

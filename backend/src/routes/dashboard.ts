@@ -1,16 +1,12 @@
 import { Router, Response } from 'express';
 import { db } from '../db/database';
-import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requirePermission } from '../middleware/auth';
 
 const router = Router();
 router.use(authMiddleware);
 
 // GET /api/dashboard
-router.get('/', (req: AuthRequest, res: Response): void => {
-  if (req.user?.role !== 'manager') {
-    res.status(403).json({ error: 'Solo para gerentes' });
-    return;
-  }
+router.get('/', requirePermission('dashboard', 'read'), (req: AuthRequest, res: Response): void => {
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);

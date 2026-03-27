@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { getMenuItems, getMenuItemById, createMenuItem, updateMenuItem } from '../db/store';
-import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requirePermission } from '../middleware/auth';
 import { validate, createMenuItemSchema, updateMenuItemSchema } from '../schemas';
 
 const router = Router();
@@ -12,7 +12,7 @@ router.get('/', (_req: AuthRequest, res: Response): void => {
 });
 
 // POST /api/menu — crear plato
-router.post('/', requireRole('manager'), (req: AuthRequest, res: Response): void => {
+router.post('/', requirePermission('menu', 'create'), (req: AuthRequest, res: Response): void => {
   const v = validate(createMenuItemSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const item = createMenuItem(v.data);
@@ -20,7 +20,7 @@ router.post('/', requireRole('manager'), (req: AuthRequest, res: Response): void
 });
 
 // PATCH /api/menu/:id — editar plato
-router.patch('/:id', requireRole('manager'), (req: AuthRequest, res: Response): void => {
+router.patch('/:id', requirePermission('menu', 'update'), (req: AuthRequest, res: Response): void => {
   const existing = getMenuItemById(req.params.id);
   if (!existing) { res.status(404).json({ error: 'Plato no encontrado' }); return; }
   const v = validate(updateMenuItemSchema, req.body);

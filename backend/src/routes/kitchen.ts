@@ -1,12 +1,12 @@
 import { Router, Response } from 'express';
 import { db } from '../db/database';
-import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requirePermission } from '../middleware/auth';
 
 const router = Router();
 router.use(authMiddleware);
 
 // GET /api/kitchen/stats — Panel de control de cocina (manager + cook)
-router.get('/stats', requireRole('manager', 'cook'), (req: AuthRequest, res: Response): void => {
+router.get('/stats', requirePermission('kitchen', 'stats'), (req: AuthRequest, res: Response): void => {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayISO = todayStart.toISOString();
