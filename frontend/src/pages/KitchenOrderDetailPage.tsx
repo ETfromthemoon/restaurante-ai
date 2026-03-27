@@ -1,14 +1,15 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 import { OrderItemStatus } from '../types';
+import GlassCard from '../components/ui/GlassCard';
+import StatusBadge from '../components/ui/StatusBadge';
 
 const ITEM_CONFIG: Record<OrderItemStatus, {
-  dot: string; label: string;
-  nextStatus: OrderItemStatus | null; nextLabel: string; btnColor: string;
+  nextStatus: OrderItemStatus | null; nextLabel: string; btnClass: string;
 }> = {
-  pending:   { dot: 'bg-gray-400',   label: 'Pendiente',  nextStatus: 'preparing', nextLabel: 'Iniciar 🔥', btnColor: 'bg-orange-500' },
-  preparing: { dot: 'bg-orange-400', label: 'Preparando', nextStatus: 'done',      nextLabel: 'Listo ✓',   btnColor: 'bg-green-500' },
-  done:      { dot: 'bg-green-400',  label: 'Listo',      nextStatus: null,         nextLabel: '',          btnColor: '' },
+  pending:   { nextStatus: 'preparing', nextLabel: 'Iniciar 🔥', btnClass: 'btn-metallic-orange' },
+  preparing: { nextStatus: 'done',      nextLabel: 'Listo ✓',   btnClass: 'bg-accent hover:bg-accent-dark text-white' },
+  done:      { nextStatus: null,         nextLabel: '',          btnClass: '' },
 };
 
 export default function KitchenOrderDetailPage() {
@@ -20,15 +21,17 @@ export default function KitchenOrderDetailPage() {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-4">
-        <p className="text-gray-400">Pedido no encontrado o ya completado.</p>
-        <button onClick={() => navigate('/cocina')} className="text-red-400 text-sm">← Volver</button>
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <p className="t-muted">Pedido no encontrado o ya completado.</p>
+        <button onClick={() => navigate('/cocina')} className="btn-ghost">← Volver</button>
       </div>
     );
   }
 
   const allDone = (order.items?.length ?? 0) > 0 && order.items?.every(i => i.status === 'done');
   const doneCount = order.items?.filter(i => i.status === 'done').length ?? 0;
+  const total = order.items?.length ?? 0;
+  const pct = total > 0 ? (doneCount / total) * 100 : 0;
 
   const handleComplete = async () => {
     if (confirm('¿Marcar pedido como completo? Se notificará al mesero.')) {
@@ -38,53 +41,84 @@ export default function KitchenOrderDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div>
       {/* Header */}
-      <div className="bg-gray-800 text-white px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate('/cocina')} className="text-gray-400 text-lg">←</button>
-        <div className="flex-1">
-          <h1 className="font-bold text-lg">Mesa {order.table?.number ?? '?'}</h1>
-          <p className="text-gray-400 text-xs">{order.items?.length ?? 0} platos</p>
+      <div className="flex items-center justify-between mb-6 gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/cocina')}
+            className="btn-ghost !px-3 !py-2"
+          >
+            ←
+          </button>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight t-primary">Mesa {order.table?.number ?? '?'}</h1>
+            <p className="text-sm mt-0.5 t-muted font-light">{total} platos en este pedido</p>
+          </div>
         </div>
-        <span className="text-green-400 font-bold text-sm">{doneCount}/{order.items?.length ?? 0} listos</span>
+        <div className="text-right">
+          <p className="text-lg font-semibold text-accent">{doneCount}/{total}</p>
+          <p className="text-xs t-muted">listos</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-6 glass-card !py-3 !px-5">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs t-muted">Progreso</span>
+          <span className="text-xs font-semibold text-accent">{Math.round(pct)}%</span>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${pct}%`,
+              background: 'linear-gradient(90deg, #059669, #34d399)',
+              boxShadow: '0 0 10px rgba(16,185,129,0.4)',
+            }}
+          />
+        </div>
       </div>
 
       {/* Items */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="space-y-3 mb-6">
         {order.items?.map(item => {
           const cfg = ITEM_CONFIG[item.status];
           return (
-            <div key={item.id} className="bg-gray-800 rounded-xl p-4 flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${cfg.dot}`} />
-              <div className="flex-1">
-                <p className="text-white font-semibold text-sm">{item.menu_item?.name}</p>
-                <p className="text-gray-400 text-xs mt-0.5">Cantidad: {item.quantity}</p>
-                {item.notes && <p className="text-yellow-400 text-xs mt-0.5 italic">📝 {item.notes}</p>}
-                <p className={`text-xs mt-1 font-medium ${cfg.dot.replace('bg-', 'text-')}`}>{cfg.label}</p>
+            <GlassCard key={item.id} className="!py-3 !px-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-semibold text-sm t-primary">{item.menu_item?.name}</p>
+                    <StatusBadge status={item.status} />
+                  </div>
+                  <p className="text-xs t-muted">Cantidad: {item.quantity}</p>
+                  {item.notes && (
+                    <p className="text-xs mt-1 italic" style={{ color: '#d97706' }}>📝 {item.notes}</p>
+                  )}
+                </div>
+                {cfg.nextStatus && (
+                  <button
+                    onClick={() => updateItemStatus(item.id, cfg.nextStatus!)}
+                    className={`${cfg.btnClass} text-xs font-medium px-3 py-2 rounded-lg flex-shrink-0 transition-colors`}
+                  >
+                    {cfg.nextLabel}
+                  </button>
+                )}
               </div>
-              {cfg.nextStatus && (
-                <button
-                  onClick={() => updateItemStatus(item.id, cfg.nextStatus!)}
-                  className={`${cfg.btnColor} text-white text-xs font-bold px-3 py-2 rounded-lg flex-shrink-0`}
-                >
-                  {cfg.nextLabel}
-                </button>
-              )}
-            </div>
+            </GlassCard>
           );
         })}
       </div>
 
       {/* Complete button */}
       {allDone && (
-        <div className="p-4 bg-gray-800 border-t border-gray-700">
-          <button
-            onClick={handleComplete}
-            className="w-full bg-green-500 text-white rounded-xl py-4 font-bold text-sm"
-          >
-            ✅ Pedido completo — Notificar mesero
-          </button>
-        </div>
+        <button
+          onClick={handleComplete}
+          className="btn-accent w-full justify-center !py-4 text-base"
+        >
+          ✅ Pedido completo — Notificar mesero
+        </button>
       )}
     </div>
   );

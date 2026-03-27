@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurante AI - Vision UI Glassmorphism</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --dark-900: #060b14;
+    --dark-800: #0a1120;
+    --dark-700: #111d30;
+    --dark-600: #1a2a42;
+    --accent: #10b981;
+    --accent-light: #34d399;
+    --accent-dark: #059669;
+    --accent-glow: rgba(16, 185, 129, 0.15);
+    --glass-bg: rgba(255,255,255,0.04);
+    --glass-bg-strong: rgba(255,255,255,0.08);
+    --glass-border: rgba(255,255,255,0.08);
+    --glass-border-light: rgba(255,255,255,0.12);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --red: #ef4444;
+    --orange: #f97316;
+    --blue: #3b82f6;
+    --yellow: #eab308;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--dark-900);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === BACKGROUND EFFECTS === */
+  .bg-glow {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.07;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-glow-1 { top: -200px; left: -100px; background: var(--accent); }
+  .bg-glow-2 { bottom: -200px; right: -100px; background: #06b6d4; }
+
+  /* === GLASSMORPHISM === */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+  }
+  .glass-strong {
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border-light);
+    border-radius: 16px;
+  }
+  .glow-accent { box-shadow: 0 0 30px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.05); }
+  .glow-soft { box-shadow: 0 4px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05); }
+
+  /* === NAV TABS === */
+  .nav-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(6, 11, 20, 0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .nav-tab {
+    padding: 8px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    background: transparent;
+  }
+  .nav-tab:hover { color: var(--text-primary); background: var(--glass-bg); }
+  .nav-tab.active {
+    color: var(--accent);
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+
+  /* === LAYOUT === */
+  .app-layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px;
+    min-height: 100vh;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255,255,255,0.02);
+    border-right: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+  }
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px 24px;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 24px;
+  }
+  .sidebar-logo .icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .sidebar-logo span { font-weight: 700; font-size: 16px; }
+
+  .sidebar-section { margin-bottom: 8px; }
+  .sidebar-section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    padding: 0 12px;
+    margin-bottom: 8px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sidebar-item:hover { color: var(--text-primary); background: var(--glass-bg); }
+  .sidebar-item.active {
+    color: var(--accent);
+    background: rgba(16, 185, 129, 0.1);
+  }
+  .sidebar-item svg { width: 18px; height: 18px; opacity: 0.7; }
+  .sidebar-item.active svg { opacity: 1; }
+
+  .sidebar-user {
+    margin-top: auto;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600;
+  }
+  .sidebar-user .info { flex: 1; }
+  .sidebar-user .name { font-size: 12px; font-weight: 600; }
+  .sidebar-user .role { font-size: 10px; color: var(--text-muted); }
+
+  /* MAIN CONTENT */
+  .main-content { flex: 1; padding: 24px; overflow-y: auto; }
+
+  /* === PAGES === */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* === DASHBOARD === */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .page-title { font-size: 24px; font-weight: 700; }
+  .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .metric-card {
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card .label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .metric-card .value { font-size: 28px; font-weight: 700; }
+  .metric-card .value.green { color: var(--accent-light); }
+  .metric-card .change { font-size: 11px; color: var(--accent); margin-top: 6px; }
+  .metric-card .change.red { color: var(--red); }
+  .metric-card::after {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.05;
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* Chart placeholder */
+  .chart-area {
+    padding: 20px;
+    min-height: 280px;
+    position: relative;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .chart-title { font-size: 14px; font-weight: 600; }
+  .chart-tabs { display: flex; gap: 4px; }
+  .chart-tab {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chart-tab.active { color: var(--accent); background: rgba(16,185,129,0.1); }
+
+  .chart-svg { width: 100%; height: 200px; }
+  .chart-line { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .chart-area-fill { fill: url(#chartGradient); opacity: 0.3; }
+  .chart-grid-line { stroke: var(--glass-border); stroke-width: 0.5; }
+  .chart-label { font-size: 10px; fill: var(--text-muted); }
+  .chart-tooltip {
+    position: absolute;
+    top: 80px; left: 60%;
+    padding: 6px 12px;
+    background: var(--dark-700);
+    border: 1px solid var(--glass-border-light);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-light);
+    pointer-events: none;
+  }
+
+  /* Summary panel */
+  .summary-panel { padding: 20px; }
+  .summary-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .summary-title h3 { font-size: 14px; font-weight: 600; }
+  .summary-title a { font-size: 11px; color: var(--accent); text-decoration: none; }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 13px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .label { color: var(--text-secondary); }
+  .summary-row .value { font-weight: 600; }
+
+  .btn-accent {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+  .btn-accent:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4); }
+
+  /* === ORDERS TABLE === */
+  .orders-table { width: 100%; padding: 20px; }
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .table-header h3 { font-size: 14px; font-weight: 600; }
+  .export-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  td {
+    padding: 14px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    vertical-align: middle;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .status-dot.green { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .status-dot.orange { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+  .status-dot.blue { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+  .status-dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .status-dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+  .item-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .item-icon.entrada { background: rgba(239, 68, 68, 0.15); }
+  .item-icon.principal { background: rgba(245, 158, 11, 0.15); }
+  .item-icon.bebida { background: rgba(59, 130, 246, 0.15); }
+  .item-icon.postre { background: rgba(168, 85, 247, 0.15); }
+
+  /* === TABLES PAGE (MESAS) === */
+  .tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .table-card {
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .table-card:hover { transform: translateY(-2px); }
+  .table-card.occupied { border-color: rgba(239, 68, 68, 0.3); }
+  .table-card.occupied::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--red);
+  }
+  .table-card.ready { border-color: rgba(16, 185, 129, 0.3); }
+  .table-card.ready::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+  .table-card.free { border-color: var(--glass-border); }
+  .table-card .table-number {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .table-card.ready .table-number { color: var(--accent-light); }
+  .table-card.occupied .table-number { color: var(--red); }
+  .table-card .table-cap {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .table-card .table-status {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .table-card.free .table-status { color: var(--accent); }
+  .table-card.occupied .table-status { color: var(--red); }
+  .table-card.ready .table-status { color: var(--accent-light); }
+
+  /* === KITCHEN PAGE === */
+  .kitchen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .kitchen-card { padding: 20px; }
+  .kitchen-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .kitchen-card-header .mesa { font-weight: 700; font-size: 16px; }
+  .kitchen-card-header .time { font-size: 12px; color: var(--text-muted); }
+  .kitchen-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 13px;
+  }
+  .kitchen-item .qty {
+    color: var(--accent);
+    font-weight: 600;
+    margin-right: 8px;
+    min-width: 24px;
+  }
+  .kitchen-progress {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--glass-bg-strong);
+    margin-top: 16px;
+    overflow: hidden;
+  }
+  .kitchen-progress-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent-dark), var(--accent-light));
+    box-shadow: 0 0 10px var(--accent-glow);
+    transition: width 0.3s;
+  }
+  .kitchen-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .kitchen-btn:hover {
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  /* === LOGIN PAGE === */
+  .login-page {
+    display: none;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-page.active { display: flex; }
+  .login-bg-glow {
+    position: absolute;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: var(--accent);
+    filter: blur(150px);
+    opacity: 0.08;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .login-card {
+    width: 380px;
+    padding: 40px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+  .login-card .logo {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    margin: 0 auto 24px;
+  }
+  .login-card h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .login-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; }
+  .login-input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-input::placeholder { color: var(--text-muted); }
+  .login-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s;
+  }
+  .login-btn:hover { box-shadow: 0 6px 25px rgba(16, 185, 129, 0.4); transform: translateY(-1px); }
+
+  /* === RESPONSIVENESS === */
+  @media (max-width: 1024px) {
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+  @media (max-width: 640px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+    .tables-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<!-- ====== LOGIN ====== -->
+<div class="login-page active" id="loginPage">
+  <div class="login-bg-glow"></div>
+  <div class="login-card glass-strong glow-soft">
+    <div class="logo">🍽</div>
+    <h1>Restaurante AI</h1>
+    <p>Inicia sesión para gestionar tu restaurante</p>
+    <input class="login-input" type="email" placeholder="correo@restaurante.com" value="gerente@restaurante.com">
+    <input class="login-input" type="password" placeholder="Contraseña" value="••••">
+    <button class="login-btn" onclick="showApp()">Iniciar Sesión</button>
+  </div>
+</div>
+
+<!-- ====== APP ====== -->
+<div class="app-layout" id="appLayout" style="display:none;">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">🍽</div>
+      <span>Restaurante AI</span>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">General</div>
+      <div class="sidebar-item active" onclick="switchPage('dashboard', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="sidebar-item" onclick="switchPage('mesas', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9h18M3 15h18M12 3v18"/></svg>
+        Mesas
+      </div>
+      <div class="sidebar-item" onclick="switchPage('cocina', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Cocina
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Gestión</div>
+      <div class="sidebar-item" onclick="switchPage('menu-manage', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Menú
+      </div>
+      <div class="sidebar-item" onclick="switchPage('caja', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Caja
+      </div>
+      <div class="sidebar-item" onclick="switchPage('promos', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Promociones
+      </div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="avatar">AG</div>
+      <div class="info">
+        <div class="name">Ana García</div>
+        <div class="role">Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Resumen del día · 19 de marzo, 2026</div>
+        </div>
+        <button class="btn-accent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar Reporte
+        </button>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card glass glow-soft">
+          <div class="label">Ventas Hoy</div>
+          <div class="value green">S/ 4,385.50</div>
+          <div class="change">↑ 12.5% vs ayer</div>
+        </div>
+        <div class="metric-card glass glow-soft">
+          <div class="label">Pedidos Cerrados</div>
+          <div class="value">28</div>
+          <div class="change">↑ 3 más que ayer</div>
+        </div>
+        <div class="metric-card glass glow-soft">
+          <div class="label">Mesas Activas</div>
+          <div class="value">6 / 10</div>
+          <div class="change red">↓ 2 menos que ayer</div>
+        </div>
+        <div class="metric-card glass glow-soft">
+          <div class="label">Tiempo Promedio</div>
+          <div class="value">23 min</div>
+          <div class="change">↑ 2 min más rápido</div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="chart-area glass glow-soft">
+          <div class="chart-header">
+            <div class="chart-title">Ventas del Día</div>
+            <div class="chart-tabs">
+              <div class="chart-tab active">Hoy</div>
+              <div class="chart-tab">Semana</div>
+              <div class="chart-tab">Mes</div>
+            </div>
+          </div>
+          <svg class="chart-svg" viewBox="0 0 600 200">
+            <defs>
+              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- Grid lines -->
+            <line class="chart-grid-line" x1="40" y1="40" x2="580" y2="40"/>
+            <line class="chart-grid-line" x1="40" y1="80" x2="580" y2="80"/>
+            <line class="chart-grid-line" x1="40" y1="120" x2="580" y2="120"/>
+            <line class="chart-grid-line" x1="40" y1="160" x2="580" y2="160"/>
+            <!-- Labels -->
+            <text class="chart-label" x="40" y="195">11am</text>
+            <text class="chart-label" x="130" y="195">12pm</text>
+            <text class="chart-label" x="220" y="195">1pm</text>
+            <text class="chart-label" x="310" y="195">2pm</text>
+            <text class="chart-label" x="400" y="195">3pm</text>
+            <text class="chart-label" x="490" y="195">4pm</text>
+            <!-- Area fill -->
+            <path class="chart-area-fill" d="M40,150 L100,130 L160,100 L220,60 L280,80 L340,45 L400,55 L460,70 L520,50 L580,40 L580,180 L40,180 Z"/>
+            <!-- Line -->
+            <path class="chart-line" d="M40,150 L100,130 L160,100 L220,60 L280,80 L340,45 L400,55 L460,70 L520,50 L580,40"/>
+            <!-- Dot -->
+            <circle cx="580" cy="40" r="4" fill="#10b981"/>
+            <circle cx="580" cy="40" r="8" fill="#10b981" opacity="0.2"/>
+          </svg>
+          <div class="chart-tooltip">S/ 4,385.50</div>
+        </div>
+
+        <div class="summary-panel glass glow-soft">
+          <div class="summary-title">
+            <h3>Top Platos Hoy</h3>
+            <a href="#">Ver todo</a>
+          </div>
+          <div class="summary-row">
+            <span class="label">Ceviche Clásico</span>
+            <span class="value">12 uds</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Arroz con Mariscos</span>
+            <span class="value">9 uds</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Lomo Saltado</span>
+            <span class="value">8 uds</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Pisco Sour</span>
+            <span class="value">15 uds</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Chicha Morada</span>
+            <span class="value">11 uds</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="orders-table glass glow-soft">
+        <div class="table-header">
+          <h3>Pedidos Recientes</h3>
+          <div class="export-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Mesa</th>
+              <th>Plato Principal</th>
+              <th>Total</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--text-muted)">01</td>
+              <td>Mesa 3</td>
+              <td><span class="item-icon entrada">🐟</span>Ceviche Mixto x2</td>
+              <td style="font-weight:600">S/ 248.00</td>
+              <td><span class="status-badge"><span class="status-dot green"></span><span style="color:var(--accent)">Entregado</span></span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-muted)">02</td>
+              <td>Mesa 7</td>
+              <td><span class="item-icon principal">🍚</span>Arroz con Mariscos</td>
+              <td style="font-weight:600">S/ 185.00</td>
+              <td><span class="status-badge"><span class="status-dot orange"></span><span style="color:var(--orange)">En cocina</span></span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-muted)">03</td>
+              <td>Mesa 1</td>
+              <td><span class="item-icon bebida">🥃</span>Pisco Sour x3</td>
+              <td style="font-weight:600">S/ 96.00</td>
+              <td><span class="status-badge"><span class="status-dot green"></span><span style="color:var(--accent)">Cobrado</span></span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-muted)">04</td>
+              <td>Mesa 5</td>
+              <td><span class="item-icon principal">🥩</span>Lomo Saltado x2</td>
+              <td style="font-weight:600">S/ 170.00</td>
+              <td><span class="status-badge"><span class="status-dot blue"></span><span style="color:var(--blue)">Listo</span></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MESAS -->
+    <div class="page" id="page-mesas">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Mesas</div>
+          <div class="page-subtitle">6 ocupadas · 4 libres · 1 lista</div>
+        </div>
+      </div>
+      <div class="tables-grid">
+        <div class="table-card glass glow-soft occupied">
+          <div class="table-number">1</div>
+          <div class="table-cap">2 personas</div>
+          <div class="table-status">Ocupada</div>
+        </div>
+        <div class="table-card glass glow-soft free">
+          <div class="table-number">2</div>
+          <div class="table-cap">4 personas</div>
+          <div class="table-status">Libre</div>
+        </div>
+        <div class="table-card glass glow-soft occupied">
+          <div class="table-number">3</div>
+          <div class="table-cap">4 personas</div>
+          <div class="table-status">Ocupada</div>
+        </div>
+        <div class="table-card glass glow-soft ready">
+          <div class="table-number">4</div>
+          <div class="table-cap">6 personas</div>
+          <div class="table-status">Lista</div>
+        </div>
+        <div class="table-card glass glow-soft free">
+          <div class="table-number">5</div>
+          <div class="table-cap">2 personas</div>
+          <div class="table-status">Libre</div>
+        </div>
+        <div class="table-card glass glow-soft occupied">
+          <div class="table-number">6</div>
+          <div class="table-cap">4 personas</div>
+          <div class="table-status">Ocupada</div>
+        </div>
+        <div class="table-card glass glow-soft occupied">
+          <div class="table-number">7</div>
+          <div class="table-cap">6 personas</div>
+          <div class="table-status">Ocupada</div>
+        </div>
+        <div class="table-card glass glow-soft free">
+          <div class="table-number">8</div>
+          <div class="table-cap">2 personas</div>
+          <div class="table-status">Libre</div>
+        </div>
+        <div class="table-card glass glow-soft occupied">
+          <div class="table-number">9</div>
+          <div class="table-cap">4 personas</div>
+          <div class="table-status">Ocupada</div>
+        </div>
+        <div class="table-card glass glow-soft free">
+          <div class="table-number">10</div>
+          <div class="table-cap">6 personas</div>
+          <div class="table-status">Libre</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COCINA -->
+    <div class="page" id="page-cocina">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Cola de Cocina</div>
+          <div class="page-subtitle">3 pedidos pendientes</div>
+        </div>
+      </div>
+      <div class="kitchen-grid">
+        <div class="kitchen-card glass glow-soft">
+          <div class="kitchen-card-header">
+            <span class="mesa">Mesa 3</span>
+            <span class="time">hace 8 min</span>
+          </div>
+          <div class="kitchen-item">
+            <span><span class="qty">2x</span> Ceviche Clásico</span>
+            <span class="status-badge"><span class="status-dot orange"></span></span>
+          </div>
+          <div class="kitchen-item">
+            <span><span class="qty">1x</span> Arroz con Mariscos</span>
+            <span class="status-badge"><span class="status-dot orange"></span></span>
+          </div>
+          <div class="kitchen-item">
+            <span><span class="qty">2x</span> Chicha Morada</span>
+            <span class="status-badge"><span class="status-dot green"></span></span>
+          </div>
+          <div class="kitchen-progress"><div class="kitchen-progress-bar" style="width:66%"></div></div>
+          <button class="kitchen-btn">Marcar como Listo ✓</button>
+        </div>
+        <div class="kitchen-card glass glow-soft">
+          <div class="kitchen-card-header">
+            <span class="mesa">Mesa 7</span>
+            <span class="time">hace 3 min</span>
+          </div>
+          <div class="kitchen-item">
+            <span><span class="qty">1x</span> Lomo Saltado</span>
+            <span class="status-badge"><span class="status-dot orange"></span></span>
+          </div>
+          <div class="kitchen-item">
+            <span><span class="qty">1x</span> Causa Limeña</span>
+            <span class="status-badge"><span class="status-dot green"></span></span>
+          </div>
+          <div class="kitchen-progress"><div class="kitchen-progress-bar" style="width:50%"></div></div>
+          <button class="kitchen-btn">Marcar como Listo ✓</button>
+        </div>
+        <div class="kitchen-card glass glow-soft">
+          <div class="kitchen-card-header">
+            <span class="mesa">Mesa 9</span>
+            <span class="time">hace 1 min</span>
+          </div>
+          <div class="kitchen-item">
+            <span><span class="qty">3x</span> Pisco Sour</span>
+            <span class="status-badge"><span class="status-dot orange"></span></span>
+          </div>
+          <div class="kitchen-item">
+            <span><span class="qty">2x</span> Tiradito de Lenguado</span>
+            <span class="status-badge"><span class="status-dot orange"></span></span>
+          </div>
+          <div class="kitchen-item">
+            <span><span class="qty">1x</span> Parihuela</span>
+            <span class="status-badge"><span class="status-dot orange"></span></span>
+          </div>
+          <div class="kitchen-progress"><div class="kitchen-progress-bar" style="width:10%"></div></div>
+          <button class="kitchen-btn">Marcar como Listo ✓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLACEHOLDERS -->
+    <div class="page" id="page-menu-manage">
+      <div class="page-header"><div><div class="page-title">Gestión de Menú</div><div class="page-subtitle">24 platos · Cevichería peruana</div></div></div>
+      <div class="glass glow-soft" style="padding:40px; text-align:center; color:var(--text-muted)">Vista de gestión de menú con formularios glassmorphism</div>
+    </div>
+    <div class="page" id="page-caja">
+      <div class="page-header"><div><div class="page-title">Caja</div><div class="page-subtitle">Sesión abierta · Ana García</div></div></div>
+      <div class="glass glow-soft" style="padding:40px; text-align:center; color:var(--text-muted)">Vista de caja con resumen de sesión glassmorphism</div>
+    </div>
+    <div class="page" id="page-promos">
+      <div class="page-header"><div><div class="page-title">Promociones</div><div class="page-subtitle">3 activas hoy</div></div></div>
+      <div class="glass glow-soft" style="padding:40px; text-align:center; color:var(--text-muted)">Vista de promociones con tarjetas glassmorphism</div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appLayout').style.display = 'flex';
+}
+function switchPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

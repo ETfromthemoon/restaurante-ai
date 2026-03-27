@@ -86,14 +86,14 @@ export default function MenuManagePage() {
   const canSave  = !!form.name.trim() && !!form.price && parseFloat(form.price) > 0;
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-6">
+    <div className="min-h-screen pb-6" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
-      <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+      <div className="banner-metallic-red text-white px-5 py-4 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => navigate('/gerente')} className="text-red-200 text-lg">←</button>
-        <h1 className="font-bold text-lg flex-1">Gestionar Menú</h1>
+        <h1 className="font-semibold text-lg tracking-tight flex-1">Gestionar Menú</h1>
         <button
           onClick={openCreate}
-          className="bg-white text-red-500 rounded-lg px-3 py-1 text-sm font-bold"
+          className="bg-white text-red-500 rounded-lg px-3 py-1 text-sm font-medium"
         >
           + Nuevo
         </button>
@@ -101,19 +101,19 @@ export default function MenuManagePage() {
 
       {/* Formulario crear / editar */}
       {showForm && (
-        <div className="bg-white mx-4 mt-4 rounded-xl p-4 shadow-sm space-y-3">
-          <h2 className="font-bold text-gray-700 text-sm">
+        <div className="card-mobile mx-4 mt-4 !p-4 space-y-3">
+          <h2 className="font-semibold t-secondary text-sm">
             {creating ? 'Nuevo plato' : `Editando: ${editing?.name}`}
           </h2>
 
           <input
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+            className="input-glass w-full !rounded-lg !py-2"
             placeholder="Nombre *"
             value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
           />
           <input
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+            className="input-glass w-full !rounded-lg !py-2"
             placeholder="Descripción"
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -121,7 +121,7 @@ export default function MenuManagePage() {
 
           <div className="flex gap-2">
             <input
-              className="w-1/2 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+              className="input-glass w-1/2 !rounded-lg !py-2"
               placeholder="Precio *"
               type="number"
               min="0"
@@ -130,7 +130,7 @@ export default function MenuManagePage() {
               onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
             />
             <select
-              className="w-1/2 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400 bg-white"
+              className="input-glass w-1/2 !rounded-lg !py-2"
               value={form.category}
               onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
             >
@@ -139,7 +139,7 @@ export default function MenuManagePage() {
           </div>
 
           <input
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-red-400"
+            className="input-glass w-full !rounded-lg !py-2"
             placeholder="Stock (dejar vacío = ilimitado ∞)"
             type="number"
             min="0"
@@ -148,7 +148,7 @@ export default function MenuManagePage() {
             onChange={e => setForm(f => ({ ...f, stock: e.target.value }))}
           />
 
-          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm t-secondary cursor-pointer">
             <input
               type="checkbox"
               checked={form.available}
@@ -161,13 +161,13 @@ export default function MenuManagePage() {
             <button
               onClick={handleSave}
               disabled={saving || !canSave}
-              className="flex-1 bg-red-500 text-white rounded-xl py-2.5 font-bold text-sm disabled:opacity-50"
+              className="flex-1 btn-metallic-red rounded-xl py-2.5 font-medium text-sm disabled:opacity-50"
             >
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
             <button
               onClick={closeForm}
-              className="flex-1 bg-gray-100 text-gray-600 rounded-xl py-2.5 font-bold text-sm"
+              className="btn-ghost flex-1 rounded-xl py-2.5 font-medium text-sm"
             >
               Cancelar
             </button>
@@ -181,37 +181,37 @@ export default function MenuManagePage() {
         if (categoryItems.length === 0) return null;
         return (
           <div key={category} className="mt-4">
-            <div className="px-4 py-2 bg-gray-200">
-              <p className="text-xs font-bold text-red-500 uppercase tracking-wider">{category}</p>
+            <div style={{ background: 'var(--border)', padding: '0.5rem 1rem' }}>
+              <p className="text-xs font-semibold text-red-500 uppercase tracking-wider">{category}</p>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {categoryItems.map(item => (
-                <div key={item.id} className="bg-white px-4 py-3 flex items-center gap-3">
+                <div key={item.id} className="px-4 py-3 flex items-center gap-3" style={{ background: 'var(--bg-surface-strong)' }}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className={`font-semibold text-sm truncate ${item.available ? 'text-gray-800' : 'text-gray-400 line-through'}`}>
+                      <p className={`font-semibold text-sm truncate ${item.available ? 't-primary' : 't-faint line-through'}`}>
                         {item.name}
                       </p>
                       {item.stock !== null && item.stock !== undefined && item.stock <= 5 && (
-                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 flex-shrink-0">
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 flex-shrink-0">
                           Stock: {item.stock}
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-400 text-xs mt-0.5">
+                    <p className="t-faint text-xs mt-0.5">
                       S/ {item.price.toFixed(2)}
                       {item.stock !== null && item.stock !== undefined && item.stock > 5 && (
-                        <span className="ml-2 text-gray-300">Stock: {item.stock}</span>
+                        <span className="ml-2 t-faint">Stock: {item.stock}</span>
                       )}
                       {(item.stock === null || item.stock === undefined) && (
-                        <span className="ml-2 text-gray-300">∞</span>
+                        <span className="ml-2 t-faint">∞</span>
                       )}
                     </p>
                   </div>
 
                   <button
                     onClick={() => toggleAvailable(item)}
-                    className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${
                       item.available
                         ? 'bg-green-100 text-green-700'
                         : 'bg-gray-100 text-gray-500'
@@ -222,7 +222,7 @@ export default function MenuManagePage() {
 
                   <button
                     onClick={() => openEdit(item)}
-                    className="text-red-500 text-sm font-semibold px-1 flex-shrink-0"
+                    className="text-red-500 text-sm font-medium px-1 flex-shrink-0"
                   >
                     Editar
                   </button>

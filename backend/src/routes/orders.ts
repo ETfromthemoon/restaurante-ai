@@ -10,9 +10,10 @@ import {
   getCurrentRound, getOrdersByTable,
   adjustStock, getActiveCajaSession,
 } from '../db/store';
-import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requireRole, requirePermission } from '../middleware/auth';
 import { Order, OrderItem, OrderStatus, OrderItemStatus, Promotion, MenuItem } from '../types';
 import { getIO } from '../socket';
+import { validate, validateParams, idParamSchema, itemIdParamSchema, tableIdParamSchema, createOrderSchema, updateOrderStatusSchema, addOrderItemSchema, updateOrderItemQtySchema, updateOrderItemStatusSchema } from '../schemas';
 
 function isPromotionActive(p: Promotion, now = new Date()): boolean {
   const day = now.getDay() || 7; // 1=lun..7=dom
@@ -76,7 +77,7 @@ router.get('/', (req: AuthRequest, res: Response): void => {
 });
 
 // GET /api/orders/table/:tableId
-router.get('/table/:tableId', (req: AuthRequest, res: Response): void => {
+router.get('/table/:tableId', validateParams(tableIdParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getActiveOrderByTable(req.params.tableId);
   if (!order) {
     res.status(404).json({ error: 'No hay pedido activo para esta mesa' });
@@ -86,7 +87,7 @@ router.get('/table/:tableId', (req: AuthRequest, res: Response): void => {
 });
 
 // GET /api/orders/:id
-router.get('/:id', (req: AuthRequest, res: Response): void => {
+router.get('/:id', validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
@@ -95,9 +96,11 @@ router.get('/:id', (req: AuthRequest, res: Response): void => {
   res.json(enrichOrder(order));
 });
 
-// POST /api/orders — crear pedido (idempotente)
-router.post('/', (req: AuthRequest, res: Response): void => {
-  const { table_id } = req.body;
+// POST /api/orders — crear pedido (idempotente) - solo mesero/manager
+router.post('/', requirePermission('orders', 'create'), (req: AuthRequest, res: Response): void => {
+  const v = validate(createOrderSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  const { table_id } = v.data;
   const table = getTableById(table_id);
   if (!table) {
     res.status(404).json({ error: 'Mesa no encontrada' });
@@ -123,14 +126,16 @@ router.post('/', (req: AuthRequest, res: Response): void => {
 });
 
 // PATCH /api/orders/:id/status
-router.patch('/:id/status', (req: AuthRequest, res: Response): void => {
+router.patch('/:id/status', requirePermission('orders', 'updateStatus'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
     return;
   }
 
-  const { status } = req.body as { status: OrderStatus };
+  const v = validate(updateOrderStatusSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  const { status } = v.data;
   updateOrder(order.id, { status });
 
   if (status === 'billed') {
@@ -159,21 +164,23 @@ router.patch('/:id/status', (req: AuthRequest, res: Response): void => {
 });
 
 // POST /api/orders/:id/items
-router.post('/:id/items', (req: AuthRequest, res: Response): void => {
+router.post('/:id/items', requirePermission('orders', 'addItem'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
     return;
   }
 
-  const { menu_item_id, quantity, notes } = req.body;
+  const v = validate(addOrderItemSchema, req.body);
+  if (!v.success) { res.status(400).json({ error: v.error }); return; }
+  const { menu_item_id, quantity: qty_input, notes } = v.data;
   const menuItem = getMenuItemById(menu_item_id);
   if (!menuItem) {
     res.status(404).json({ error: 'Plato no encontrado' });
     return;
   }
 
-  const qty = quantity || 1;
+  const qty = qty_input;
 
   // Validar stock
   if (menuItem.stock !== null && menuItem.stock !== undefined && menuItem.stock < qty) {
@@ -231,7 +238,7 @@ router.post('/:id/items', (req: AuthRequest, res: Response): void => {
     order_id: order.id,
     menu_item_id,
     quantity: qty,
-    notes,
+    notes: notes ?? undefined,
     status: 'pending',
     effective_price: effectivePrice,
     round: itemRound,
@@ -252,7 +259,7 @@ router.post('/:id/items', (req: AuthRequest, res: Response): void => {
 });
 
 // PATCH /api/orders/:id/items/:itemId — actualizar cantidad
-router.patch('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
+router.patch('/:id/items/:itemId', requirePermission('orders', 'updateItem'), validateParams(idParamSchema), validateParams(itemIdParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
@@ -265,11 +272,9 @@ router.patch('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
     return;
   }
 
-  const { quantity } = req.body as { quantity: number };
-  if (!quantity || quantity < 1) {
-    res.status(400).json({ error: 'Cantidad inválida' });
-    return;
-  }
+  const vq = validate(updateOrderItemQtySchema, req.body);
+  if (!vq.success) { res.status(400).json({ error: vq.error }); return; }
+  const { quantity } = vq.data;
 
   // Validar y ajustar stock si aplica
   const menuItem = getMenuItemById(item.menu_item_id)!;
@@ -300,7 +305,7 @@ router.patch('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
 });
 
 // DELETE /api/orders/:id/items/:itemId
-router.delete('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
+router.delete('/:id/items/:itemId', requirePermission('orders', 'deleteItem'), validateParams(idParamSchema), validateParams(itemIdParamSchema), (req: AuthRequest, res: Response): void => {
   const item = getOrderItemById(req.params.itemId);
   if (item) {
     const mi = getMenuItemById(item.menu_item_id);
@@ -311,7 +316,7 @@ router.delete('/:id/items/:itemId', (req: AuthRequest, res: Response): void => {
 });
 
 // PATCH /api/orders/:id/deliver
-router.patch('/:id/deliver', (req: AuthRequest, res: Response): void => {
+router.patch('/:id/deliver', requirePermission('orders', 'deliver'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
   const order = getOrderById(req.params.id);
   if (!order) {
     res.status(404).json({ error: 'Pedido no encontrado' });
@@ -323,14 +328,16 @@ router.patch('/:id/deliver', (req: AuthRequest, res: Response): void => {
   res.json(enrichOrder(getOrderById(order.id)!));
 });
 
-// PATCH /api/orders/items/:itemId/status
-router.patch('/items/:itemId/status', (req: AuthRequest, res: Response): void => {
+// PATCH /api/orders/items/:itemId/status — solo cocina/manager
+router.patch('/items/:itemId/status', requirePermission('orders', 'updateItemStatus'), (req: AuthRequest, res: Response): void => {
   const item = getOrderItemById(req.params.itemId);
   if (!item) {
     res.status(404).json({ error: 'Item no encontrado' });
     return;
   }
-  const { status } = req.body as { status: OrderItemStatus };
+  const vs = validate(updateOrderItemStatusSchema, req.body);
+  if (!vs.success) { res.status(400).json({ error: vs.error }); return; }
+  const { status } = vs.data;
   updateOrderItemStatus(item.id, status);
   const menuItem = getMenuItemById(item.menu_item_id);
   getIO().to('waiters').emit('order:item_status', { orderId: item.order_id, itemId: item.id, status });

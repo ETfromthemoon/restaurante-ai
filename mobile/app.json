@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Restaurante AI",
+    "slug": "restaurante-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#E74C3C"
+    },
+    "ios": { "supportsTablet": false },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#E74C3C" }
+    }
+  }
+}

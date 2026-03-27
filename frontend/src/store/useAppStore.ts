@@ -18,6 +18,9 @@ interface AppState {
   cajaHistory: CajaSession[];
   waiters: User[];
 
+  urgencyMinutes: number;
+  setUrgencyMinutes: (n: number) => void;
+
   // flags separados por dominio
   orderLoading: boolean;
   menuLoading: boolean;
@@ -82,11 +85,13 @@ export const useAppStore = create<AppState>()(
       activeCajaSession: null,
       cajaHistory: [],
       waiters: [],
+      urgencyMinutes: 30,
       orderLoading: false,
       menuLoading: false,
       error: null,
 
       clearError: () => set({ error: null }),
+      setUrgencyMinutes: (n) => set({ urgencyMinutes: n }),
 
       login: async (email, password) => {
         set({ orderLoading: true, error: null });
@@ -451,7 +456,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'restaurante-auth',
-      partialize: state => ({ user: state.user, token: state.token }),
+      partialize: state => ({ user: state.user, token: state.token, urgencyMinutes: state.urgencyMinutes }),
     }
   )
 );

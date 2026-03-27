@@ -37,15 +37,15 @@
 
 ---
 
-## Sprint 4 — Inteligencia artificial
+## ✅ Sprint 4 — Inteligencia artificial (completado)
 > Objetivo: aprovechar el SDK de Anthropic ya instalado
 
 | # | Historia | Detalle | Prioridad |
 |---|----------|---------|-----------|
-| 4.1 | Sugerencias de maridaje | Al agregar un plato, Claude sugiere bebida o postre complementario | 🔴 Alta |
-| 4.2 | Resumen de turno con IA | El gerente puede pedir un resumen narrativo del día ("¿cómo fue el turno?") | 🔴 Alta |
-| 4.3 | Detección de demoras | Claude alerta si un pedido lleva más tiempo del promedio histórico en cocina | 🟡 Media |
-| 4.4 | Recomendaciones de menú por hora | Sugerir platos según hora del día y patrones de venta | 🟡 Media |
+| ✅ 4.1 | Sugerencias de maridaje | Al agregar un plato, Claude sugiere bebida o postre complementario (`POST /api/ai/pairing`) | 🔴 Alta |
+| ✅ 4.2 | Resumen de turno con IA | El gerente solicita resumen narrativo del día desde el dashboard (`GET /api/ai/shift-summary`) | 🔴 Alta |
+| ✅ 4.3 | Detección de demoras | Claude alerta si un pedido supera el 150% del promedio histórico (`GET /api/ai/delay-check`) | 🟡 Media |
+| ✅ 4.4 | Recomendaciones de menú por hora | Sugerir platos según hora del día y patrones de venta (`GET /api/ai/menu-recommendations`) | 🟡 Media |
 | 4.5 | Notas de voz para pedidos | El mesero dicta el pedido por voz; Whisper + Claude lo transcriben a ítems | 🟢 Baja |
 
 ---
@@ -55,17 +55,17 @@
 
 | # | Historia | Detalle | Prioridad |
 |---|----------|---------|-----------|
-| 5.1 | Paridad mobile con web | Sincronizar cambios de sprints 2-4 en la app Expo | 🔴 Alta |
+| ✅ 5.1 | Paridad mobile con web | types, store, socket, OrderScreen, MenuSelectScreen, TableOrderHistoryScreen | 🔴 Alta |
 | 5.2 | Modo offline básico | Guardar pedido localmente si no hay red; sincronizar al reconectar | 🟡 Media |
-| 5.3 | PWA instalable | Configurar manifest e íconos reales para instalar en home screen | 🟡 Media |
+| ✅ 5.3 | PWA instalable | Manifest completo, 4 íconos, Service Worker Workbox, shortcuts Android, meta tags iOS | 🟡 Media |
 | 5.4 | Impresión de comanda | Enviar ticket a impresora térmica (ESC/POS) al enviar a cocina | 🟢 Baja |
 
 ---
 
-## Deuda técnica
-| Item | Detalle |
-|------|---------|
-| Passwords en texto plano | Hashear con bcrypt |
-| Sin validación de entrada | Agregar Zod en rutas del backend |
-| Errores genéricos en frontend | Mejorar mensajes de error por tipo de fallo |
-| Sin tests | Al menos tests de integración para rutas críticas de orders |
+## ✅ Deuda técnica (resuelta)
+| Item | Detalle | Estado |
+|------|---------|--------|
+| ~~Passwords en texto plano~~ | Hashear con bcrypt | ✅ bcrypt ya implementado (hash round 10) |
+| ~~Sin validación de entrada~~ | `idParamSchema`, `tableIdParamSchema`, `validateParams` middleware en 9 rutas de orders + 2 de caja | ✅ Completado |
+| ~~Errores genéricos en frontend~~ | Sistema de toasts (`useToast` + `ToastContainer`): success/error/warning/info, dark mode, auto-dismiss | ✅ Completado |
+| ~~Sin tests~~ | Vitest + Supertest: 16 tests de integración (auth × 4, orders × 12). `npm test` → 16 passed | ✅ Completado |
