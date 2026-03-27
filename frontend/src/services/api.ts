@@ -69,6 +69,27 @@ export interface MenuRecommendationsResponse {
   hour: number;
 }
 
+// ---------------------------------------------------------------------------
+// Kitchen Service helpers
+// ---------------------------------------------------------------------------
+
+export interface KitchenStats {
+  orders_in_queue:    number;
+  urgent_count:       number;
+  completed_today:    number;
+  avg_prep_minutes:   number | null;
+  time_distribution:  { label: string; count: number }[];
+  items_by_status:    { pending: number; preparing: number; done: number };
+  throughput_by_hour: { hour: number; count: number }[];
+  slowest_order:      { id: string; table_number: number; minutes: number } | null;
+  fastest_order:      { id: string; table_number: number; minutes: number } | null;
+}
+
+export const kitchenService = {
+  getStats: (): Promise<KitchenStats> =>
+    api.get('/kitchen/stats').then(r => r.data),
+};
+
 export const aiService = {
   getPairing: (itemId: string): Promise<PairingResponse> =>
     api.post('/ai/pairing', { itemId }).then(r => r.data),

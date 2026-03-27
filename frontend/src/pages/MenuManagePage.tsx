@@ -88,12 +88,12 @@ export default function MenuManagePage() {
   return (
     <div className="min-h-screen pb-6" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
-      <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+      <div className="banner-metallic-red text-white px-5 py-4 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => navigate('/gerente')} className="text-red-200 text-lg">←</button>
-        <h1 className="font-bold text-lg flex-1">Gestionar Menú</h1>
+        <h1 className="font-semibold text-lg tracking-tight flex-1">Gestionar Menú</h1>
         <button
           onClick={openCreate}
-          className="bg-white text-red-500 rounded-lg px-3 py-1 text-sm font-bold"
+          className="bg-white text-red-500 rounded-lg px-3 py-1 text-sm font-medium"
         >
           + Nuevo
         </button>
@@ -102,7 +102,7 @@ export default function MenuManagePage() {
       {/* Formulario crear / editar */}
       {showForm && (
         <div className="card-mobile mx-4 mt-4 !p-4 space-y-3">
-          <h2 className="font-bold t-secondary text-sm">
+          <h2 className="font-semibold t-secondary text-sm">
             {creating ? 'Nuevo plato' : `Editando: ${editing?.name}`}
           </h2>
 
@@ -161,13 +161,13 @@ export default function MenuManagePage() {
             <button
               onClick={handleSave}
               disabled={saving || !canSave}
-              className="flex-1 bg-red-500 text-white rounded-xl py-2.5 font-bold text-sm disabled:opacity-50"
+              className="flex-1 btn-metallic-red rounded-xl py-2.5 font-medium text-sm disabled:opacity-50"
             >
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
             <button
               onClick={closeForm}
-              className="btn-ghost flex-1 rounded-xl py-2.5 font-bold text-sm"
+              className="btn-ghost flex-1 rounded-xl py-2.5 font-medium text-sm"
             >
               Cancelar
             </button>
@@ -182,7 +182,7 @@ export default function MenuManagePage() {
         return (
           <div key={category} className="mt-4">
             <div style={{ background: 'var(--border)', padding: '0.5rem 1rem' }}>
-              <p className="text-xs font-bold text-red-500 uppercase tracking-wider">{category}</p>
+              <p className="text-xs font-semibold text-red-500 uppercase tracking-wider">{category}</p>
             </div>
             <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {categoryItems.map(item => (
@@ -193,7 +193,7 @@ export default function MenuManagePage() {
                         {item.name}
                       </p>
                       {item.stock !== null && item.stock !== undefined && item.stock <= 5 && (
-                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 flex-shrink-0">
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 flex-shrink-0">
                           Stock: {item.stock}
                         </span>
                       )}
@@ -211,7 +211,7 @@ export default function MenuManagePage() {
 
                   <button
                     onClick={() => toggleAvailable(item)}
-                    className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${
                       item.available
                         ? 'bg-green-100 text-green-700'
                         : 'bg-gray-100 text-gray-500'
@@ -222,7 +222,7 @@ export default function MenuManagePage() {
 
                   <button
                     onClick={() => openEdit(item)}
-                    className="text-red-500 text-sm font-semibold px-1 flex-shrink-0"
+                    className="text-red-500 text-sm font-medium px-1 flex-shrink-0"
                   >
                     Editar
                   </button>

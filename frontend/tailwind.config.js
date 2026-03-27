@@ -6,7 +6,7 @@ export default {
     extend: {
       colors: {
         dark: {
-          900: '#060b14',
+          900: '#050a12',
           800: '#0a1120',
           700: '#111d30',
           600: '#1a2a42',
@@ -18,7 +18,14 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      borderRadius: {
+        '2xl': '20px',
+        '3xl': '24px',
+      },
+      backdropBlur: {
+        '3xl': '64px',
       },
     },
   },

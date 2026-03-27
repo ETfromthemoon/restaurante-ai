@@ -32,28 +32,32 @@ export default function LoginPage() {
       style={{ background: 'var(--bg-base)' }}
     >
       {/* Glow */}
-      <div className="absolute w-[500px] h-[500px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 blur-[150px]"
+      <div className="absolute w-[600px] h-[600px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 blur-[180px]"
+           style={{ opacity: 'var(--glow-opacity)', pointerEvents: 'none' }} />
+      <div className="absolute w-[300px] h-[300px] rounded-full -top-20 -right-20 bg-cyan-500 blur-[120px]"
            style={{ opacity: 'var(--glow-opacity)', pointerEvents: 'none' }} />
 
       {/* Theme toggle — top right */}
       <button
         onClick={toggle}
         title={isDark ? 'Modo claro' : 'Modo oscuro'}
-        className="absolute top-4 right-4 z-10 btn-ghost !px-3 !py-2"
+        className="absolute top-5 right-5 z-10 btn-ghost !px-3 !py-2"
       >
         {isDark
-          ? <><Sun size={15} className="text-yellow-400" /><span className="text-xs">Claro</span></>
-          : <><Moon size={15} className="text-indigo-500" /><span className="text-xs">Oscuro</span></>
+          ? <><Sun size={14} className="text-yellow-400" /><span className="text-xs font-light">Claro</span></>
+          : <><Moon size={14} className="text-indigo-500" /><span className="text-xs font-light">Oscuro</span></>
         }
       </button>
 
       <div className="glass-strong glow-soft w-full max-w-sm p-8 relative z-10">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center text-2xl mx-auto mb-5">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5 relative overflow-hidden"
+               style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)', boxShadow: '0 8px 30px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
             🍽
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(115deg, rgba(255,255,255,0) 35%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0) 65%)' }} />
           </div>
-          <h1 className="text-xl font-bold t-primary">Restaurante AI</h1>
-          <p className="text-sm mt-1 t-muted">Inicia sesión para gestionar tu restaurante</p>
+          <h1 className="text-xl font-semibold t-primary tracking-wide">Restaurante AI</h1>
+          <p className="text-sm mt-2 t-muted font-light">Inicia sesión para gestionar tu restaurante</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -74,45 +78,49 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-accent w-full justify-center !py-3 !mt-4"
+            className="btn-accent w-full justify-center !py-3.5 !mt-5 text-sm"
           >
             {loading ? 'Ingresando...' : 'Iniciar Sesión'}
           </button>
         </form>
 
-        <div className="mt-6">
-          <p className="text-center text-[11px] mb-3 t-faint">Acceso rápido demo</p>
+        <div className="mt-7">
+          <p className="text-center text-[11px] mb-3 t-muted font-light tracking-wide uppercase">Acceso rápido demo</p>
           <div className="grid grid-cols-3 gap-2">
-            <button onClick={() => fillDemo('waiter')} className="btn-ghost !py-2 justify-center text-xs gap-1.5">
-              <UtensilsCrossed size={14} /> Mesero
+            <button onClick={() => fillDemo('waiter')} className="btn-ghost !py-2.5 justify-center text-xs gap-1.5">
+              <UtensilsCrossed size={13} /> Mesero
             </button>
-            <button onClick={() => fillDemo('cook')} className="btn-ghost !py-2 justify-center text-xs gap-1.5">
-              <ChefHat size={14} /> Cocina
+            <button onClick={() => fillDemo('cook')} className="btn-ghost !py-2.5 justify-center text-xs gap-1.5">
+              <ChefHat size={13} /> Cocina
             </button>
-            <button onClick={() => fillDemo('manager')} className="btn-ghost !py-2 justify-center text-xs gap-1.5">
-              <Briefcase size={14} /> Gerente
+            <button onClick={() => fillDemo('manager')} className="btn-ghost !py-2.5 justify-center text-xs gap-1.5">
+              <Briefcase size={13} /> Gerente
             </button>
           </div>
         </div>
       </div>
 
-      {/* Aviso de instalación PWA — solo si no está instalada */}
+      {/* Aviso de instalación PWA */}
       {!isInstalled && (canInstall || isIOS) && (
         <div className="absolute bottom-6 left-0 right-0 flex justify-center px-4">
           {canInstall ? (
             <button
               onClick={promptInstall}
-              className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full
-                         bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20"
+              className="flex items-center gap-2 text-xs font-medium px-5 py-2.5 rounded-full transition-colors border"
+              style={{
+                background: 'linear-gradient(135deg, rgba(220,38,38,0.08), rgba(239,68,68,0.12))',
+                borderColor: 'rgba(220,38,38,0.15)',
+                color: '#ef4444',
+              }}
             >
               <Download size={13} />
               Instalar como app
             </button>
           ) : (
-            <p className="flex items-center gap-1.5 text-xs t-faint text-center">
+            <p className="flex items-center gap-1.5 text-xs t-muted text-center font-light">
               <Share2 size={12} />
               Para instalar: toca{' '}
-              <span className="font-semibold t-muted">Compartir → Añadir a pantalla de inicio</span>
+              <span className="font-medium t-secondary">Compartir → Añadir a pantalla de inicio</span>
             </p>
           )}
         </div>

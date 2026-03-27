@@ -30,9 +30,9 @@ export default function TableAssignmentPage() {
   return (
     <div className="min-h-screen pb-8" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
-      <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+      <div className="banner-metallic-red text-white px-5 py-4 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => navigate('/gerente')} className="text-red-200 text-lg">←</button>
-        <h1 className="font-bold text-lg flex-1">Asignar Mesas</h1>
+        <h1 className="font-semibold text-lg tracking-tight flex-1">Asignar Mesas</h1>
       </div>
 
       {/* Grid de mesas */}
@@ -48,9 +48,9 @@ export default function TableAssignmentPage() {
               style={{ borderColor: 'var(--border)' }}
             >
               <span className="text-3xl">🍽️</span>
-              <span className="font-bold t-primary text-base">Mesa {table.number}</span>
-              <span className="text-xs t-faint">👥 {table.capacity} personas</span>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full mt-1 ${
+              <span className="font-semibold t-primary text-base">Mesa {table.number}</span>
+              <span className="text-xs t-faint font-light">👥 {table.capacity} personas</span>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${
                 hasWaiter ? 'bg-blue-100 text-blue-700 dark:text-blue-300' : 'bg-gray-100 text-gray-500'
               }`}>
                 {hasWaiter ? `👤 ${waiterName}` : 'Sin asignar'}
@@ -64,13 +64,13 @@ export default function TableAssignmentPage() {
       {selected && (
         <div className="fixed inset-0 bg-black/50 flex items-end z-50" onClick={() => setSelected(null)}>
           <div className="w-full rounded-t-2xl p-6 space-y-3" style={{ background: 'var(--bg-surface-strong)' }} onClick={e => e.stopPropagation()}>
-            <h2 className="font-bold t-primary text-lg">Mesa {selected.number} — Asignar mesero</h2>
+            <h2 className="font-semibold t-primary text-lg tracking-tight">Mesa {selected.number} — Asignar mesero</h2>
 
             {/* Opción sin asignar */}
             <button
               onClick={() => handleAssign(null)}
               disabled={saving}
-              className={`w-full text-left px-4 py-3 rounded-xl border-2 font-semibold text-sm transition ${
+              className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium text-sm transition ${
                 !selected.assigned_waiter_id
                   ? 'border-red-400 bg-red-50 text-red-600'
                   : 't-secondary'
@@ -86,7 +86,7 @@ export default function TableAssignmentPage() {
                 key={w.id}
                 onClick={() => handleAssign(w.id)}
                 disabled={saving}
-                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-semibold text-sm transition ${
+                className={`w-full text-left px-4 py-3 rounded-xl border-2 font-medium text-sm transition ${
                   selected.assigned_waiter_id === w.id
                     ? 'border-blue-400 bg-blue-50 text-blue-700 dark:text-blue-300'
                     : 't-secondary'
@@ -99,7 +99,7 @@ export default function TableAssignmentPage() {
 
             <button
               onClick={() => setSelected(null)}
-              className="btn-ghost w-full rounded-xl py-3 font-bold"
+              className="btn-ghost w-full rounded-xl py-3 font-medium"
             >
               Cancelar
             </button>

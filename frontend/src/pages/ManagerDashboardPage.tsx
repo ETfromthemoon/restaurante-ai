@@ -57,39 +57,43 @@ export default function ManagerDashboardPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <p className="t-muted animate-pulse">Cargando dashboard...</p>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+        <p className="t-muted text-sm font-light">Cargando dashboard...</p>
+      </div>
     </div>
   );
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6 gap-3 flex-wrap">
+      <div className="flex justify-between items-center mb-8 gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold t-primary">Dashboard</h1>
-          <p className="text-sm mt-1 t-muted">
+          <h1 className="text-2xl font-semibold t-primary tracking-tight">Dashboard</h1>
+          <p className="text-sm mt-1.5 t-muted font-light">
             Resumen del día · {new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button onClick={fetchAiSummary} disabled={aiSummaryLoading} className="btn-accent flex items-center gap-2">
-            <Sparkles size={16} />
+            <Sparkles size={15} />
             {aiSummaryLoading ? 'Generando...' : 'Resumen IA'}
           </button>
           <button className="btn-ghost flex items-center gap-2">
-            <Download size={16} /> Exportar
+            <Download size={15} /> Exportar
           </button>
         </div>
       </div>
 
       {delayData && delayData.alerts.length > 0 && (
-        <div className="mb-4 glass rounded-xl p-4 flex items-start gap-3" style={{ borderColor: 'rgba(251,146,60,0.3)' }}>
-          <AlertTriangle size={18} className="text-orange-400 flex-shrink-0 mt-0.5" />
+        <div className="mb-5 glass rounded-2xl p-4 flex items-start gap-3" style={{ borderColor: 'rgba(251,146,60,0.2)' }}>
+          <AlertTriangle size={17} className="text-orange-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-semibold text-orange-400">⚠️ Demoras detectadas</p>
-            <p className="text-xs mt-1 t-muted">{delayData.message}</p>
+            <p className="text-sm font-medium text-orange-400">⚠️ Demoras detectadas</p>
+            <p className="text-xs mt-1 t-muted font-light">{delayData.message}</p>
             <div className="flex flex-wrap gap-2 mt-2">
               {delayData.alerts.map(a => (
-                <span key={a.orderId} className="bg-orange-400/10 border border-orange-400/20 text-orange-500 dark:text-orange-400 text-xs px-2 py-0.5 rounded-full">
+                <span key={a.orderId} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                      style={{ background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.15)', color: '#fb923c' }}>
                   Mesa {a.tableId}: {a.elapsedMinutes} min
                 </span>
               ))}
@@ -102,28 +106,28 @@ export default function ManagerDashboardPage() {
       )}
 
       {aiSummaryOpen && (
-        <div className="fixed inset-0 bg-black/60 z-30 flex items-center justify-center p-4">
-          <div className="glass-strong rounded-2xl p-6 max-w-lg w-full space-y-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+          <div className="glass-strong rounded-2xl p-7 max-w-lg w-full space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles size={18} className="text-accent" />
-                <h3 className="font-bold text-lg t-primary">Resumen del Turno</h3>
+              <div className="flex items-center gap-2.5">
+                <Sparkles size={17} className="text-accent" />
+                <h3 className="font-semibold text-lg t-primary">Resumen del Turno</h3>
               </div>
               <button onClick={() => setAiSummaryOpen(false)} className="text-2xl leading-none t-muted hover:t-primary">×</button>
             </div>
             {aiSummaryLoading ? (
-              <div className="py-8 flex flex-col items-center gap-3">
+              <div className="py-10 flex flex-col items-center gap-3">
                 <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-                <p className="text-sm t-muted">Claude está analizando el turno...</p>
+                <p className="text-sm t-muted font-light">Claude está analizando el turno...</p>
               </div>
             ) : aiSummary ? (
               <>
-                <p className="text-sm leading-relaxed t-secondary">{aiSummary.summary}</p>
+                <p className="text-sm leading-relaxed t-secondary font-light">{aiSummary.summary}</p>
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   {Object.entries(aiSummary.stats).map(([k, v]) => (
-                    <div key={k} className="glass rounded-lg p-2.5">
-                      <p className="text-[10px] uppercase tracking-wider t-muted">{k.replace(/_/g, ' ')}</p>
-                      <p className="text-sm font-semibold mt-0.5 t-primary">{String(v)}</p>
+                    <div key={k} className="glass rounded-xl p-3">
+                      <p className="text-[10px] uppercase tracking-[0.12em] t-muted font-medium">{k.replace(/_/g, ' ')}</p>
+                      <p className="text-sm font-medium mt-1 t-primary">{String(v)}</p>
                     </div>
                   ))}
                 </div>
@@ -132,58 +136,60 @@ export default function ManagerDashboardPage() {
                 </button>
               </>
             ) : (
-              <p className="text-sm text-center py-6 t-muted">No se pudo generar el resumen</p>
+              <p className="text-sm text-center py-8 t-muted font-light">No se pudo generar el resumen</p>
             )}
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <GlassCard className="relative overflow-hidden">
-          <p className="text-xs mb-2 t-muted">Ventas Hoy</p>
-          <p className="text-2xl font-bold text-accent-light">S/ {data?.sales_today.toFixed(2) ?? '0.00'}</p>
-          <p className="text-[11px] text-accent mt-1">
+          <p className="text-[11px] mb-2 t-muted font-medium uppercase tracking-[0.1em]">Ventas Hoy</p>
+          <p className="text-2xl font-semibold" style={{ background: 'linear-gradient(135deg, #059669, #34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            S/ {data?.sales_today.toFixed(2) ?? '0.00'}
+          </p>
+          <p className="text-[11px] text-accent mt-1.5 font-light">
             {data?.orders_today ?? 0} pedido{(data?.orders_today ?? 0) !== 1 ? 's' : ''} cerrado{(data?.orders_today ?? 0) !== 1 ? 's' : ''}
           </p>
-          <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-accent opacity-5" />
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.04]" style={{ background: 'linear-gradient(135deg, #059669, #34d399)' }} />
         </GlassCard>
         <GlassCard className="relative overflow-hidden">
-          <p className="text-xs mb-2 t-muted">Pedidos Cerrados</p>
-          <p className="text-2xl font-bold t-primary">{data?.orders_today ?? 0}</p>
-          <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-accent opacity-5" />
+          <p className="text-[11px] mb-2 t-muted font-medium uppercase tracking-[0.08em] leading-tight">Pedidos</p>
+          <p className="text-2xl font-semibold t-primary">{data?.orders_today ?? 0}</p>
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.04]" style={{ background: 'linear-gradient(135deg, #3b82f6, #60a5fa)' }} />
         </GlassCard>
         <GlassCard className="relative overflow-hidden">
-          <p className="text-xs mb-2 t-muted">Mesas Activas</p>
-          <p className="text-2xl font-bold t-primary">{data?.tables_occupied ?? 0} / 10</p>
-          <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-accent opacity-5" />
+          <p className="text-[11px] mb-2 t-muted font-medium uppercase tracking-[0.1em]">Mesas Activas</p>
+          <p className="text-2xl font-semibold t-primary">{data?.tables_occupied ?? 0} / 10</p>
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.04]" style={{ background: 'linear-gradient(135deg, #f59e0b, #fbbf24)' }} />
         </GlassCard>
         <GlassCard className="relative overflow-hidden">
-          <p className="text-xs mb-2 t-muted">Tiempo Promedio</p>
-          <p className="text-2xl font-bold t-primary">
+          <p className="text-[11px] mb-2 t-muted font-medium uppercase tracking-[0.08em] leading-tight">T. Promedio</p>
+          <p className="text-2xl font-semibold t-primary">
             {data?.avg_service_minutes != null ? data.avg_service_minutes : '—'}
-            {data?.avg_service_minutes != null && <span className="text-base font-normal t-muted ml-1">min</span>}
+            {data?.avg_service_minutes != null && <span className="text-base font-light t-muted ml-1">min</span>}
           </p>
-          <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full bg-accent opacity-5" />
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-[0.04]" style={{ background: 'linear-gradient(135deg, #a855f7, #c084fc)' }} />
         </GlassCard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <GlassCard className="lg:col-span-2 !p-0">
-          <div className="p-5 pb-0 flex justify-between items-center">
-            <h3 className="text-sm font-semibold t-primary">Ventas del Día</h3>
+          <div className="p-6 pb-0 flex justify-between items-center">
+            <h3 className="text-sm font-medium t-primary">Ventas del Día</h3>
           </div>
           <div className="h-56 px-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.25} />
                     <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
                 <Tooltip
-                  contentStyle={{ background: 'var(--bg-surface-strong)', border: '1px solid var(--border-strong)', borderRadius: 8, color: '#10b981', fontSize: 13 }}
+                  contentStyle={{ background: 'var(--bg-surface-strong)', border: '1px solid var(--border-strong)', borderRadius: 14, color: '#10b981', fontSize: 13 }}
                   formatter={(v: any) => [`S/ ${Number(v).toFixed(2)}`, 'Ventas']}
                 />
                 <Area type="monotone" dataKey="ventas" stroke="#10b981" strokeWidth={2} fill="url(#salesGradient)" />
@@ -192,17 +198,17 @@ export default function ManagerDashboardPage() {
           </div>
         </GlassCard>
         <GlassCard>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold t-primary">Top Platos Hoy</h3>
-            <span className="text-[11px] text-accent cursor-pointer">Ver todo</span>
+          <div className="flex justify-between items-center mb-5">
+            <h3 className="text-sm font-medium t-primary">Top Platos Hoy</h3>
+            <span className="text-[11px] text-accent cursor-pointer font-medium">Ver todo</span>
           </div>
           {!data?.top_items.length ? (
-            <p className="text-sm text-center py-8 t-muted">Sin datos aún</p>
+            <p className="text-sm text-center py-10 t-muted font-light">Sin datos aún</p>
           ) : (
             data.top_items.map((item, i) => (
-              <div key={i} className="flex justify-between items-center py-2.5 last:border-0" style={{ borderBottom: '1px solid var(--border)' }}>
-                <span className="text-sm t-secondary">{item.name}</span>
-                <span className="text-sm font-semibold t-primary">{item.total_qty} uds</span>
+              <div key={i} className="flex justify-between items-center py-3 last:border-0" style={{ borderBottom: '1px solid var(--border)' }}>
+                <span className="text-sm t-secondary font-light">{item.name}</span>
+                <span className="text-sm font-medium t-primary">{item.total_qty} uds</span>
               </div>
             ))
           )}
@@ -210,24 +216,24 @@ export default function ManagerDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <button onClick={() => navigate('/gerente/menu')} className="btn-ghost justify-center flex-col gap-1 !py-4">
-          <BookOpen size={20} className="text-accent" /><span className="text-xs">Menú</span>
+        <button onClick={() => navigate('/gerente/menu')} className="btn-ghost justify-center flex-col gap-1.5 !py-5">
+          <BookOpen size={19} className="text-accent" /><span className="text-xs font-light">Menú</span>
         </button>
-        <button onClick={() => navigate('/gerente/promociones')} className="btn-ghost justify-center flex-col gap-1 !py-4">
-          <Tag size={20} className="text-orange-400" /><span className="text-xs">Promociones</span>
+        <button onClick={() => navigate('/gerente/promociones')} className="btn-ghost justify-center flex-col gap-1.5 !py-5">
+          <Tag size={19} className="text-orange-400" /><span className="text-xs font-light">Promociones</span>
         </button>
-        <button onClick={() => navigate('/gerente/mesas/asignar')} className="btn-ghost justify-center flex-col gap-1 !py-4">
-          <Users size={20} className="text-blue-400" /><span className="text-xs">Asignar Mesas</span>
+        <button onClick={() => navigate('/gerente/mesas/asignar')} className="btn-ghost justify-center flex-col gap-1.5 !py-5">
+          <Users size={19} className="text-blue-400" /><span className="text-xs font-light">Asignar Mesas</span>
         </button>
-        <button onClick={() => navigate('/gerente/caja')} className="btn-ghost justify-center flex-col gap-1 !py-4 relative">
-          <Wallet size={20} className="text-emerald-500" /><span className="text-xs">Caja</span>
+        <button onClick={() => navigate('/gerente/caja')} className="btn-ghost justify-center flex-col gap-1.5 !py-5 relative">
+          <Wallet size={19} className="text-emerald-500" /><span className="text-xs font-light">Caja</span>
           <span className={`absolute top-2 right-2 w-2 h-2 rounded-full ${activeCajaSession ? 'bg-emerald-400 shadow-[0_0_6px_theme(colors.emerald.400)]' : 'bg-red-400'}`} />
         </button>
-        <button onClick={() => navigate('/gerente/caja/historial')} className="btn-ghost justify-center flex-col gap-1 !py-4">
-          <ClipboardList size={20} className="text-blue-400" /><span className="text-xs">Historial</span>
+        <button onClick={() => navigate('/gerente/caja/historial')} className="btn-ghost justify-center flex-col gap-1.5 !py-5">
+          <ClipboardList size={19} className="text-blue-400" /><span className="text-xs font-light">Historial</span>
         </button>
-        <button onClick={() => navigate('/mesas')} className="btn-ghost justify-center flex-col gap-1 !py-4">
-          <span className="text-xl">🍽</span><span className="text-xs">Ver Mesas</span>
+        <button onClick={() => navigate('/mesas')} className="btn-ghost justify-center flex-col gap-1.5 !py-5">
+          <span className="text-xl">🍽</span><span className="text-xs font-light">Ver Mesas</span>
         </button>
       </div>
     </div>

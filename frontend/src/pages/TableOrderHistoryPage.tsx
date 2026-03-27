@@ -32,21 +32,21 @@ export default function TableOrderHistoryPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
-      <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3">
+      <div className="banner-metallic-red text-white px-5 py-4 flex items-center gap-3">
         <button
           onClick={() => navigate(`/mesas/${tableId}/pedido`)}
           className="text-red-200 text-lg"
         >
           ←
         </button>
-        <h1 className="font-bold text-lg">Historial Mesa {tableNum}</h1>
+        <h1 className="font-semibold text-lg tracking-tight">Historial Mesa {tableNum}</h1>
       </div>
 
       <div className="p-3 space-y-3">
         {tableOrderHistory.length === 0 ? (
           <div className="text-center pt-20">
             <p className="text-4xl">📋</p>
-            <p className="t-muted font-semibold mt-4">Sin historial de pedidos</p>
+            <p className="t-muted font-medium mt-4">Sin historial de pedidos</p>
           </div>
         ) : (
           tableOrderHistory.map(order => {
@@ -58,10 +58,10 @@ export default function TableOrderHistoryPage() {
                 {/* Cabecera del pedido */}
                 <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
                   <div>
-                    <p className="font-bold t-primary text-sm">{STATUS_LABEL[order.status] ?? order.status}</p>
-                    <p className="t-muted text-xs mt-0.5">{formatDate(order.created_at)}</p>
+                    <p className="font-semibold t-primary text-sm">{STATUS_LABEL[order.status] ?? order.status}</p>
+                    <p className="t-muted text-xs mt-0.5 font-light">{formatDate(order.created_at)}</p>
                   </div>
-                  <span className="font-bold text-red-500 text-base">S/ {total.toFixed(2)}</span>
+                  <span className="font-semibold text-red-500 text-base">S/ {total.toFixed(2)}</span>
                 </div>
                 {/* Items */}
                 {order.items && order.items.length > 0 && (

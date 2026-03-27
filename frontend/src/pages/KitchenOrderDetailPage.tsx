@@ -7,7 +7,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 const ITEM_CONFIG: Record<OrderItemStatus, {
   nextStatus: OrderItemStatus | null; nextLabel: string; btnClass: string;
 }> = {
-  pending:   { nextStatus: 'preparing', nextLabel: 'Iniciar 🔥', btnClass: 'bg-orange-500 hover:bg-orange-600 text-white' },
+  pending:   { nextStatus: 'preparing', nextLabel: 'Iniciar 🔥', btnClass: 'btn-metallic-orange' },
   preparing: { nextStatus: 'done',      nextLabel: 'Listo ✓',   btnClass: 'bg-accent hover:bg-accent-dark text-white' },
   done:      { nextStatus: null,         nextLabel: '',          btnClass: '' },
 };
@@ -52,12 +52,12 @@ export default function KitchenOrderDetailPage() {
             ←
           </button>
           <div>
-            <h1 className="text-2xl font-bold t-primary">Mesa {order.table?.number ?? '?'}</h1>
-            <p className="text-sm mt-0.5 t-muted">{total} platos en este pedido</p>
+            <h1 className="text-2xl font-semibold tracking-tight t-primary">Mesa {order.table?.number ?? '?'}</h1>
+            <p className="text-sm mt-0.5 t-muted font-light">{total} platos en este pedido</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-lg font-bold text-accent">{doneCount}/{total}</p>
+          <p className="text-lg font-semibold text-accent">{doneCount}/{total}</p>
           <p className="text-xs t-muted">listos</p>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function KitchenOrderDetailPage() {
                 {cfg.nextStatus && (
                   <button
                     onClick={() => updateItemStatus(item.id, cfg.nextStatus!)}
-                    className={`${cfg.btnClass} text-xs font-bold px-3 py-2 rounded-lg flex-shrink-0 transition-colors`}
+                    className={`${cfg.btnClass} text-xs font-medium px-3 py-2 rounded-lg flex-shrink-0 transition-colors`}
                   >
                     {cfg.nextLabel}
                   </button>

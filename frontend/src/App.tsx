@@ -72,7 +72,7 @@ function AppInner() {
           <Route path="/mesas/:tableId/historial"     element={<DashboardLayout><TableOrderHistoryPage /></DashboardLayout>} />
         </Route>
 
-        <Route element={<ProtectedRoute roles={['cook']} />}>
+        <Route element={<ProtectedRoute roles={['cook', 'manager']} />}>
           <Route path="/cocina"          element={<DashboardLayout><KitchenQueuePage /></DashboardLayout>} />
           <Route path="/cocina/:orderId" element={<DashboardLayout><KitchenOrderDetailPage /></DashboardLayout>} />
         </Route>

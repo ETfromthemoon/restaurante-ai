@@ -49,17 +49,17 @@ export default function CajaHistorialPage() {
 
   return (
     <div className="min-h-screen pb-8" style={{ background: 'var(--bg-base)' }}>
-      <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+      <div className="banner-metallic-red text-white px-5 py-4 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => navigate('/gerente')} className="text-red-200 text-lg">←</button>
-        <h1 className="font-bold text-lg flex-1">Historial de Caja</h1>
+        <h1 className="font-semibold text-lg tracking-tight flex-1">Historial de Caja</h1>
       </div>
 
       <div className="p-4 space-y-3">
         {cajaHistory.length === 0 ? (
           <div className="card-mobile !p-8 text-center">
             <p className="text-4xl mb-3">🗂️</p>
-            <p className="t-muted font-semibold">Sin turnos registrados</p>
-            <p className="t-faint text-sm mt-1">Los turnos cerrados aparecerán aquí</p>
+            <p className="t-muted font-medium">Sin turnos registrados</p>
+            <p className="t-faint text-sm mt-1 font-light">Los turnos cerrados aparecerán aquí</p>
           </div>
         ) : (
           cajaHistory.map(session => {
@@ -79,14 +79,14 @@ export default function CajaHistorialPage() {
                       <span className={`w-2.5 h-2.5 rounded-full ${session.closed_at ? 'bg-gray-400' : 'bg-green-500'}`} />
                       <p className="font-semibold t-primary text-sm">{session.cashier_name}</p>
                     </div>
-                    <p className="text-xs t-faint mt-0.5 pl-4">
+                    <p className="text-xs t-faint mt-0.5 pl-4 font-light">
                       {fmt(session.opened_at)}
                       {session.closed_at ? ` → ${fmt(session.closed_at)}` : ' · En curso'}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {summary && (
-                      <span className="text-green-600 font-bold text-sm">S/ {summary.total.toFixed(2)}</span>
+                      <span className="text-green-600 font-semibold text-sm">S/ {summary.total.toFixed(2)}</span>
                     )}
                     <span className="t-faint text-xs">{isLoading ? '...' : isOpen ? '▲' : '▼'}</span>
                   </div>
@@ -98,11 +98,11 @@ export default function CajaHistorialPage() {
                     {/* Resumen rápido */}
                     <div className="flex gap-3">
                       <div className="flex-1 rounded-lg p-3 text-center" style={{ background: 'var(--bg-surface)', borderRadius: '0.5rem' }}>
-                        <p className="text-2xl font-bold t-primary">{summary.orders.length}</p>
+                        <p className="text-2xl font-semibold tracking-tight t-primary">{summary.orders.length}</p>
                         <p className="text-xs t-faint mt-0.5">pedido{summary.orders.length !== 1 ? 's' : ''}</p>
                       </div>
                       <div className="flex-1 bg-green-50 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-green-600">S/ {summary.total.toFixed(2)}</p>
+                        <p className="text-2xl font-semibold tracking-tight text-green-600">S/ {summary.total.toFixed(2)}</p>
                         <p className="text-xs t-faint mt-0.5">total recaudado</p>
                       </div>
                     </div>
@@ -112,14 +112,14 @@ export default function CajaHistorialPage() {
                       <p className="t-faint text-sm text-center py-2">Sin pedidos cobrados en este turno</p>
                     ) : (
                       <div className="space-y-2">
-                        <p className="text-xs font-bold t-faint uppercase tracking-wider">Pedidos cobrados</p>
+                        <p className="text-xs font-semibold t-faint uppercase tracking-wider">Pedidos cobrados</p>
                         {summary.orders.map(order => (
                           <div key={order.id} className="rounded-lg p-3" style={{ background: 'var(--bg-surface)', borderRadius: '0.5rem' }}>
                             <div className="flex justify-between items-center mb-2">
-                              <span className="font-semibold t-secondary text-sm">
+                              <span className="font-medium t-secondary text-sm">
                                 Mesa {order.table?.number ?? order.table_id}
                               </span>
-                              <span className="font-bold t-primary text-sm">
+                              <span className="font-semibold t-primary text-sm">
                                 S/ {orderTotal(order).toFixed(2)}
                               </span>
                             </div>

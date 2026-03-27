@@ -107,9 +107,9 @@ export default function MenuSelectPage() {
   return (
     <div className="min-h-screen pb-24" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
-      <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+      <div className="banner-metallic-red text-white px-5 py-4 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => navigate(-1)} className="text-red-200 text-lg">←</button>
-        <h1 className="font-bold text-lg">🍴 Agregar Platos</h1>
+        <h1 className="font-semibold text-lg tracking-tight">🍴 Agregar Platos</h1>
         {orderLoading && (
           <span className="text-red-200 text-xs ml-auto animate-pulse">Guardando...</span>
         )}
@@ -128,8 +128,8 @@ export default function MenuSelectPage() {
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <button
               onClick={() => setCategory(null)}
-              className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                !activeCategory ? 'bg-red-500 text-white border-red-500' : 'btn-ghost border'
+              className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                !activeCategory ? 'btn-metallic-red border-transparent' : 'btn-ghost border'
               }`}
               style={activeCategory ? { borderColor: 'var(--border)' } : undefined}
             >
@@ -139,8 +139,8 @@ export default function MenuSelectPage() {
               <button
                 key={cat}
                 onClick={() => setCategory(activeCategory === cat ? null : cat)}
-                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                  activeCategory === cat ? 'bg-red-500 text-white border-red-500' : 'btn-ghost border'
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  activeCategory === cat ? 'btn-metallic-red border-transparent' : 'btn-ghost border'
                 }`}
                 style={activeCategory !== cat ? { borderColor: 'var(--border)' } : undefined}
               >
@@ -161,7 +161,7 @@ export default function MenuSelectPage() {
           <p className="t-faint font-medium">No se pudo cargar el menú</p>
           <button
             onClick={() => fetchMenu()}
-            className="bg-red-500 text-white px-6 py-2 rounded-xl font-semibold"
+            className="btn-metallic-red px-6 py-2 rounded-xl font-medium"
           >
             Reintentar
           </button>
@@ -178,7 +178,7 @@ export default function MenuSelectPage() {
         Object.entries(categories).map(([category, items]) => (
           <div key={category}>
             <div style={{ background: 'var(--border)', padding: '0.5rem 1rem' }} className="sticky top-14 z-10">
-              <p className="text-xs font-bold text-red-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-red-500 uppercase tracking-wider">
                 {CATEGORY_ICONS[category] ?? '🍴'} {category}
               </p>
             </div>
@@ -193,34 +193,34 @@ export default function MenuSelectPage() {
                       <div className="flex items-center gap-2">
                         <p className="font-semibold t-primary text-sm">{item.name}</p>
                         {promo && (
-                          <span className="bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                          <span className="bg-orange-100 text-orange-600 text-xs font-semibold px-1.5 py-0.5 rounded-full">
                             {promoBadge(promo)}
                           </span>
                         )}
                       </div>
-                      <p className="t-faint text-xs mt-0.5">{item.description}</p>
+                      <p className="t-faint text-xs mt-0.5 font-light">{item.description}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         {promo && discountedPrice(item, promo) !== null ? (
                           <>
                             <span className="t-faint text-xs line-through block">S/ {item.price}</span>
-                            <span className="font-bold text-orange-500 text-sm">S/ {discountedPrice(item, promo)!.toFixed(2)}</span>
+                            <span className="font-semibold text-orange-500 text-sm">S/ {discountedPrice(item, promo)!.toFixed(2)}</span>
                           </>
                         ) : promo?.type === '2x1' ? (
                           <>
-                            <span className="font-bold text-red-500 text-sm">S/ {item.price}</span>
-                            <span className="text-orange-500 text-xs block">lleva 2, paga 1</span>
+                            <span className="font-semibold text-red-500 text-sm">S/ {item.price}</span>
+                            <span className="text-orange-500 text-xs block font-light">lleva 2, paga 1</span>
                           </>
                         ) : (
-                          <span className="font-bold text-red-500 text-sm">S/ {item.price}</span>
+                          <span className="font-semibold text-red-500 text-sm">S/ {item.price}</span>
                         )}
                       </div>
                       <button
                         onClick={() => handleAddClick(item)}
                         disabled={isLoading || orderLoading}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xl transition-colors
-                          ${isLoading || orderLoading ? 'bg-gray-300' : isAdded ? 'bg-green-500' : 'bg-red-500 active:bg-red-600'}`}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-xl transition-colors
+                          ${isLoading || orderLoading ? 'bg-gray-300' : isAdded ? 'bg-green-500' : 'btn-metallic-red'}`}
                       >
                         {isLoading ? '·' : isAdded ? '✓' : '+'}
                       </button>
@@ -238,7 +238,7 @@ export default function MenuSelectPage() {
         <div className="fixed bottom-0 left-0 right-0 p-4" style={{ background: 'var(--bg-surface-strong)', borderTop: '1px solid var(--border)' }}>
           <button
             onClick={() => navigate(-1)}
-            className="w-full bg-green-500 text-white rounded-xl py-3 font-bold"
+            className="w-full btn-metallic-teal rounded-xl py-3 font-medium"
           >
             ✅ Ver pedido ({added.size} agregados)
           </button>
@@ -250,10 +250,10 @@ export default function MenuSelectPage() {
         <div className="fixed inset-0 bg-black/50 z-20 flex items-end">
           <div className="w-full rounded-t-2xl p-4 space-y-3" style={{ background: 'var(--bg-surface-strong)' }}>
             <div>
-              <p className="font-bold t-primary">{noteItem.name}</p>
+              <p className="font-semibold t-primary">{noteItem.name}</p>
               <p className="t-faint text-xs">S/ {noteItem.price}</p>
             </div>
-            <p className="t-muted text-sm">¿Alguna indicación para cocina? (opcional)</p>
+            <p className="t-muted text-sm font-light">¿Alguna indicación para cocina? (opcional)</p>
             <textarea
               autoFocus
               rows={2}
@@ -266,13 +266,13 @@ export default function MenuSelectPage() {
               <button
                 onClick={handleConfirmAdd}
                 disabled={adding === noteItem.id}
-                className="flex-1 bg-red-500 text-white rounded-xl py-3 font-bold disabled:opacity-50"
+                className="flex-1 btn-metallic-red rounded-xl py-3 font-medium disabled:opacity-50"
               >
                 {adding === noteItem.id ? 'Agregando...' : 'Agregar al pedido'}
               </button>
               <button
                 onClick={() => setNoteItem(null)}
-                className="btn-ghost rounded-xl px-4 font-bold"
+                className="btn-ghost rounded-xl px-4 font-medium"
               >
                 Cancelar
               </button>
@@ -288,7 +288,7 @@ export default function MenuSelectPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-orange-500 font-semibold uppercase tracking-wider">✨ Sugerencias de maridaje</p>
-                <p className="font-bold t-primary mt-0.5">Combina bien con {pairingItem.name}</p>
+                <p className="font-semibold t-primary mt-0.5">Combina bien con {pairingItem.name}</p>
               </div>
               <button
                 onClick={() => setPairingItem(null)}
@@ -312,14 +312,14 @@ export default function MenuSelectPage() {
                       <div className="flex-1">
                         <p className="font-semibold t-primary text-sm">{s.name}</p>
                         <p className="t-faint text-xs mt-0.5 italic">"{s.reason}"</p>
-                        {s.price && <p className="text-red-500 font-bold text-xs mt-1">S/ {s.price}</p>}
+                        {s.price && <p className="text-red-500 font-semibold text-xs mt-1">S/ {s.price}</p>}
                       </div>
                       {s.id && (
                         <button
                           onClick={() => handleAddPairing(s)}
                           disabled={isAlreadyAdded || adding === s.id}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0 transition-colors
-                            ${adding === s.id ? 'bg-gray-300' : isAlreadyAdded ? 'bg-green-500' : 'bg-orange-400 active:bg-orange-500'}`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-xl flex-shrink-0 transition-colors
+                            ${adding === s.id ? 'bg-gray-300' : isAlreadyAdded ? 'bg-green-500' : 'btn-metallic-orange'}`}
                         >
                           {adding === s.id ? '·' : isAlreadyAdded ? '✓' : '+'}
                         </button>

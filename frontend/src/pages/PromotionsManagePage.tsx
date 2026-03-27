@@ -125,12 +125,12 @@ export default function PromotionsManagePage() {
   return (
     <div className="min-h-screen pb-6" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
-      <div className="bg-red-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+      <div className="banner-metallic-red text-white px-5 py-4 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => navigate('/gerente')} className="text-red-200 text-lg">←</button>
-        <h1 className="font-bold text-lg flex-1">🏷️ Gestionar Promociones</h1>
+        <h1 className="font-semibold text-lg tracking-tight flex-1">🏷️ Gestionar Promociones</h1>
         <button
           onClick={openCreate}
-          className="bg-white text-red-500 rounded-lg px-3 py-1 text-sm font-bold"
+          className="bg-white text-red-500 rounded-lg px-3 py-1 text-sm font-medium"
         >
           + Nueva
         </button>
@@ -139,7 +139,7 @@ export default function PromotionsManagePage() {
       {/* Formulario */}
       {showForm && (
         <div className="card-mobile mx-4 mt-4 !p-4 space-y-3">
-          <h2 className="font-bold t-secondary text-sm">
+          <h2 className="font-semibold t-secondary text-sm">
             {editing ? `Editando: ${editing.name}` : 'Nueva promoción'}
           </h2>
 
@@ -156,9 +156,9 @@ export default function PromotionsManagePage() {
               <button
                 key={t}
                 onClick={() => setForm(f => ({ ...f, type: t }))}
-                className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${
+                className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
                   form.type === t
-                    ? 'bg-red-500 text-white border-red-500'
+                    ? 'btn-metallic-red border-transparent'
                     : 'btn-ghost border'
                 }`}
               >
@@ -187,9 +187,9 @@ export default function PromotionsManagePage() {
                 <button
                   key={a}
                   onClick={() => setForm(f => ({ ...f, applies_to: a, target_id: '' }))}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
                     form.applies_to === a
-                      ? 'bg-orange-500 text-white border-orange-500'
+                      ? 'btn-metallic-orange border-transparent'
                       : 'btn-ghost border'
                   }`}
                 >
@@ -231,9 +231,9 @@ export default function PromotionsManagePage() {
                 <button
                   key={d.value}
                   onClick={() => toggleDay(d.value)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                     form.days_of_week.includes(d.value)
-                      ? 'bg-blue-500 text-white border-blue-500'
+                      ? 'btn-metallic-blue border-transparent'
                       : 'btn-ghost border'
                   }`}
                 >
@@ -269,13 +269,13 @@ export default function PromotionsManagePage() {
             <button
               onClick={handleSave}
               disabled={saving || !form.name.trim() || form.days_of_week.length === 0}
-              className="flex-1 bg-red-500 text-white rounded-xl py-2.5 font-bold text-sm disabled:opacity-50"
+              className="flex-1 btn-metallic-red rounded-xl py-2.5 font-medium text-sm disabled:opacity-50"
             >
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
             <button
               onClick={closeForm}
-              className="btn-ghost flex-1 rounded-xl py-2.5 font-bold text-sm"
+              className="btn-ghost flex-1 rounded-xl py-2.5 font-medium text-sm"
             >
               Cancelar
             </button>
@@ -298,11 +298,11 @@ export default function PromotionsManagePage() {
                   <p className={`font-semibold text-sm truncate ${p.active ? 't-primary' : 't-faint'}`}>
                     {p.name}
                   </p>
-                  <span className="bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  <span className="bg-orange-100 text-orange-600 text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0">
                     {typeLabel(p.type)}{p.type !== '2x1' ? ` ${p.value}` : ''}
                   </span>
                 </div>
-                <p className="t-faint text-xs mt-0.5">
+                <p className="t-faint text-xs mt-0.5 font-light">
                   {p.applies_to === 'all' ? 'Todo el menú' :
                    p.applies_to === 'category' ? `Cat: ${p.target_id}` :
                    `Plato: ${menuItems.find(m => m.id === p.target_id)?.name ?? p.target_id}`}
@@ -315,7 +315,7 @@ export default function PromotionsManagePage() {
 
               <button
                 onClick={() => toggleActive(p)}
-                className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${
+                className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${
                   p.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                 }`}
               >
@@ -324,7 +324,7 @@ export default function PromotionsManagePage() {
 
               <button
                 onClick={() => openEdit(p)}
-                className="text-red-500 text-sm font-semibold px-1 flex-shrink-0"
+                className="text-red-500 text-sm font-medium px-1 flex-shrink-0"
               >
                 Editar
               </button>

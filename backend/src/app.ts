@@ -12,6 +12,7 @@ import dashboardRoutes   from './routes/dashboard';
 import promotionsRoutes  from './routes/promotions';
 import cajaRoutes        from './routes/caja';
 import aiRoutes          from './routes/ai';
+import kitchenRoutes     from './routes/kitchen';
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use('/api/dashboard',  dashboardRoutes);
 app.use('/api/promotions', promotionsRoutes);
 app.use('/api/caja',       cajaRoutes);
 app.use('/api/ai',         aiRoutes);
+app.use('/api/kitchen',    kitchenRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 

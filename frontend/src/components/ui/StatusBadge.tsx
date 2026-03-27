@@ -28,7 +28,7 @@ export default function StatusBadge({ status, label }: StatusBadgeProps) {
   const text = label ?? statusLabels[status] ?? status;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${cfg.color}`}>
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium tracking-wide ${cfg.color}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
       {text}
     </span>
