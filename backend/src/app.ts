@@ -29,10 +29,33 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 
 // Rate limiters
-const authLimiter = rateLimit({ windowMs: 60_000, max: 5, message: { error: 'Demasiados intentos. Espera 1 minuto.' } });
-const apiLimiter  = rateLimit({ windowMs: 60_000, max: 100 });
+const authLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos de login. Espera 1 minuto.' },
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Límite de consultas de IA alcanzado. Espera 1 minuto.' },
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas solicitudes. Espera 1 minuto.' },
+});
+
 app.use('/api/auth', authLimiter);
-app.use('/api', apiLimiter);
+app.use('/api/ai',   aiLimiter);
+app.use('/api',      apiLimiter);
 
 // HTTPS redirect in production
 if (process.env.NODE_ENV === 'production') {
