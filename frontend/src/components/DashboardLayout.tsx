@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, UtensilsCrossed, ChefHat, BookOpen, Wallet, Tag, LogOut, Sun, Moon, Download, Menu, X } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, ChefHat, BookOpen, Wallet, Tag, Users, LogOut, Sun, Moon, Download, Menu, X } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useTheme } from '../store/useTheme';
 import { usePWAInstall } from '../hooks/usePWAInstall';
@@ -29,6 +29,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { icon: <BookOpen size={17} />, label: 'Menú', path: '/gerente/menu', roles: ['manager'] },
       { icon: <Wallet size={17} />, label: 'Caja', path: '/gerente/caja', roles: ['manager'] },
       { icon: <Tag size={17} />, label: 'Promociones', path: '/gerente/promociones', roles: ['manager'] },
+      { icon: <Users size={17} />, label: 'Usuarios', path: '/gerente/usuarios', roles: ['manager'] },
     ],
   },
 ];

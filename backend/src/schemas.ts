@@ -78,6 +78,21 @@ export const updatePromotionSchema = z.object({
   active: z.boolean().optional(),
 });
 
+// --- Users ---
+export const createUserSchema = z.object({
+  name:     z.string().min(1, 'Nombre requerido').max(100),
+  email:    z.string().email('Email inválido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  role:     z.enum(['waiter', 'cook', 'manager']),
+});
+
+export const updateUserSchema = z.object({
+  name:     z.string().min(1).max(100).optional(),
+  email:    z.string().email().optional(),
+  password: z.string().min(6).optional(),
+  role:     z.enum(['waiter', 'cook', 'manager']).optional(),
+});
+
 // --- Param schemas ---
 export const idParamSchema = z.object({
   id: z.string().min(1, 'ID requerido'),

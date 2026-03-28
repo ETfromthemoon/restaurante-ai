@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 
+import { globalErrorHandler } from './middleware/errorHandler';
 import authRoutes      from './routes/auth';
 import tableRoutes     from './routes/tables';
 import orderRoutes     from './routes/orders';
@@ -13,6 +14,7 @@ import promotionsRoutes  from './routes/promotions';
 import cajaRoutes        from './routes/caja';
 import aiRoutes          from './routes/ai';
 import kitchenRoutes     from './routes/kitchen';
+import usersRoutes       from './routes/users';
 
 dotenv.config();
 
@@ -76,7 +78,11 @@ app.use('/api/promotions', promotionsRoutes);
 app.use('/api/caja',       cajaRoutes);
 app.use('/api/ai',         aiRoutes);
 app.use('/api/kitchen',    kitchenRoutes);
+app.use('/api/users',      usersRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// Global error handler — must be last
+app.use(globalErrorHandler);
 
 export default app;

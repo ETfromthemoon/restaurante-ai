@@ -20,6 +20,7 @@ import TableOrderHistoryPage    from './pages/TableOrderHistoryPage';
 import CajaPage                 from './pages/CajaPage';
 import CajaHistorialPage        from './pages/CajaHistorialPage';
 import TableAssignmentPage      from './pages/TableAssignmentPage';
+import UsersManagePage          from './pages/UsersManagePage';
 
 // Componente interno que ya tiene acceso al ToastContext
 function AppInner() {
@@ -84,6 +85,7 @@ function AppInner() {
           <Route path="/gerente/caja"               element={<DashboardLayout><CajaPage /></DashboardLayout>} />
           <Route path="/gerente/caja/historial"     element={<DashboardLayout><CajaHistorialPage /></DashboardLayout>} />
           <Route path="/gerente/mesas/asignar"      element={<DashboardLayout><TableAssignmentPage /></DashboardLayout>} />
+          <Route path="/gerente/usuarios"           element={<DashboardLayout><UsersManagePage /></DashboardLayout>} />
         </Route>
 
         <Route path="*" element={<Navigate to={home} />} />

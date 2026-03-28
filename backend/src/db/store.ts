@@ -11,6 +11,49 @@ export function getUserByEmail(email: string): User | undefined {
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email) as User | undefined;
 }
 
+export function getUserById(id: string): User | undefined {
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
+}
+
+export function getAllUsers(): Omit<User, 'password'>[] {
+  return db.prepare('SELECT id, name, email, role FROM users ORDER BY role, name').all() as Omit<User, 'password'>[];
+}
+
+export function createUser(data: { name: string; email: string; password: string; role: string }): Omit<User, 'password'> {
+  const id = `u${Date.now()}`;
+  db.prepare('INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)')
+    .run(id, data.name, data.email, data.password, data.role);
+  return { id, name: data.name, email: data.email, role: data.role as User['role'] };
+}
+
+export function updateUser(id: string, fields: Partial<Pick<User, 'name' | 'email' | 'role' | 'password'>>): Omit<User, 'password'> | undefined {
+  const sets: string[] = [];
+  const values: any[]  = [];
+
+  if (fields.name     !== undefined) { sets.push('name = ?');     values.push(fields.name); }
+  if (fields.email    !== undefined) { sets.push('email = ?');    values.push(fields.email); }
+  if (fields.role     !== undefined) { sets.push('role = ?');     values.push(fields.role); }
+  if (fields.password !== undefined) { sets.push('password = ?'); values.push(fields.password); }
+
+  if (sets.length > 0) {
+    values.push(id);
+    db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+  }
+  const user = getUserById(id);
+  if (!user) return undefined;
+  const { password: _, ...rest } = user;
+  return rest;
+}
+
+export function deleteUser(id: string): void {
+  db.prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+export function countManagers(): number {
+  const row = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'manager'").get() as { c: number };
+  return row.c;
+}
+
 export function getWaiters(): User[] {
   return db.prepare("SELECT * FROM users WHERE role = 'waiter'").all() as User[];
 }

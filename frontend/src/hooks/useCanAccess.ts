@@ -61,6 +61,13 @@ const PERMISSIONS: PermissionsMap = {
     delayCheck:          ['waiter', 'manager'],
     menuRecommendations: ['waiter', 'manager'],
   },
+  users: {
+    list:   ['manager'],
+    read:   ['manager'],
+    create: ['manager'],
+    update: ['manager'],
+    delete: ['manager'],
+  },
 };
 
 /**

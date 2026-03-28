@@ -6,6 +6,7 @@ export default defineConfig({
     environment: 'node',
     pool: 'forks',
     singleFork: true,
+    include: ['src/**/*.test.ts'],
     setupFiles: ['./src/__tests__/setup.ts'],
     env: {
       DB_PATH: ':memory:',
