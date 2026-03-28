@@ -180,7 +180,7 @@ router.post('/:id/items', requirePermission('orders', 'addItem'), validateParams
   // Bug #2 fix: verificar que el mesero sigue asignado a la mesa del pedido
   if (req.user!.role === 'waiter') {
     const table = getTableById(order.table_id);
-    if (table && table.assigned_waiter_id && table.assigned_waiter_id !== req.user!.id) {
+    if (table && table.assigned_waiter_id !== null && table.assigned_waiter_id !== req.user!.id) {
       res.status(403).json({ error: 'Esta mesa ya no está asignada a ti.' });
       return;
     }
@@ -284,7 +284,7 @@ router.patch('/:id/items/:itemId', requirePermission('orders', 'updateItem'), va
   // Bug #2 fix: verificar que el mesero sigue asignado a la mesa del pedido
   if (req.user!.role === 'waiter') {
     const table = getTableById(order.table_id);
-    if (table && table.assigned_waiter_id && table.assigned_waiter_id !== req.user!.id) {
+    if (table && table.assigned_waiter_id !== null && table.assigned_waiter_id !== req.user!.id) {
       res.status(403).json({ error: 'Esta mesa ya no está asignada a ti.' });
       return;
     }

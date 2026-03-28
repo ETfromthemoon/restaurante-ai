@@ -22,6 +22,17 @@ router.patch('/:id/assign', requireRole('manager'), (req: AuthRequest, res: Resp
   if (!table) { res.status(404).json({ error: 'Mesa no encontrada' }); return; }
   const v = validate(assignWaiterSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
+
+  // Validar que el waiter_id existe si se está asignando uno
+  if (v.data.waiter_id != null) {
+    const waiters = getWaiters();
+    const exists = waiters.some(w => w.id === v.data.waiter_id);
+    if (!exists) {
+      res.status(400).json({ error: 'El mesero especificado no existe.' });
+      return;
+    }
+  }
+
   updateTable(req.params.id, { assigned_waiter_id: v.data.waiter_id ?? null });
   const updated = getTableById(req.params.id);
   getIO().to('waiters').emit('table:updated', { table: updated });

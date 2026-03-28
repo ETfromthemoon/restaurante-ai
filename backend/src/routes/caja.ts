@@ -51,6 +51,19 @@ router.patch('/:id/close', requireRole('manager'), validateParams(idParamSchema)
     res.status(409).json({ error: 'La sesión ya está cerrada' });
     return;
   }
+
+  // Fix Caso 5: bloquear cierre si hay pedidos pendientes de cobro
+  const pendingBilling = db.prepare(
+    "SELECT COUNT(*) as count FROM orders WHERE status = 'billing'"
+  ).get() as { count: number };
+  if (pendingBilling.count > 0) {
+    res.status(409).json({
+      error: `Hay ${pendingBilling.count} pedido(s) pendientes de cobro. Cóbralos antes de cerrar la caja.`,
+      pending_count: pendingBilling.count,
+    });
+    return;
+  }
+
   const closedAt = new Date().toISOString();
   closeCajaSession(req.params.id, closedAt);
   res.json({ ...session, closed_at: closedAt });
