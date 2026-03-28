@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 
 import { globalErrorHandler } from './middleware/errorHandler';
+import { tenantMiddleware } from './middleware/tenant';
 import authRoutes      from './routes/auth';
 import tableRoutes     from './routes/tables';
 import orderRoutes     from './routes/orders';
@@ -68,6 +69,9 @@ if (process.env.NODE_ENV === 'production') {
     next();
   });
 }
+
+// Tenant middleware — resolves req.store for all /api/* routes
+app.use('/api', tenantMiddleware);
 
 app.use('/api/auth',       authRoutes);
 app.use('/api/tables',     tableRoutes);

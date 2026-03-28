@@ -1,22 +1,18 @@
 import { Router, Response } from 'express';
-import {
-  getOrders, getOrderById, getActiveOrderByTable, insertOrder, updateOrder,
-  getTableById, updateTable,
-  getMenuItemById,
-  getItemsByOrderId, getOrderItemById,
-  insertOrderItem, deleteOrderItem, updateOrderItemStatus, updateOrderItemQuantity,
-  nextOrderId, nextOrderItemId,
-  getActivePromotions,
-  getCurrentRound, getOrdersByTable,
-  adjustStock, getActiveCajaSession,
-} from '../db/store';
-import { authMiddleware, AuthRequest, requireRole, requirePermission } from '../middleware/auth';
+import { authMiddleware, AuthRequest, requirePermission } from '../middleware/auth';
 import { Order, OrderItem, OrderStatus, OrderItemStatus, Promotion, MenuItem } from '../types';
-import { getIO } from '../socket';
-import { validate, validateParams, idParamSchema, itemIdParamSchema, tableIdParamSchema, createOrderSchema, updateOrderStatusSchema, addOrderItemSchema, updateOrderItemQtySchema, updateOrderItemStatusSchema } from '../schemas';
+import { getTenantIO } from '../socket';
+import { Store } from '../db/store';
+import {
+  validate, validateParams,
+  idParamSchema, itemIdParamSchema, tableIdParamSchema,
+  createOrderSchema, updateOrderStatusSchema,
+  addOrderItemSchema, updateOrderItemQtySchema, updateOrderItemStatusSchema,
+} from '../schemas';
 
+// ── Helpers de promociones (puros, sin dependencia de DB) ──
 function isPromotionActive(p: Promotion, now = new Date()): boolean {
-  const day = now.getDay() || 7; // 1=lun..7=dom
+  const day = now.getDay() || 7;
   if (!p.days_of_week.includes(day)) return false;
   const hhmm = now.toTimeString().slice(0, 5);
   return hhmm >= p.time_start && hhmm < p.time_end;
@@ -38,148 +34,126 @@ function calcEffectivePrice(price: number, quantity: number, p: Promotion): numb
   return price;
 }
 
-const router = Router();
-router.use(authMiddleware);
-
-function enrichOrder(order: Order): Order {
-  const table = getTableById(order.table_id);
+function enrichOrder(order: Order, store: Store): Order {
+  const table = store.getTableById(order.table_id);
   const now   = new Date();
-  const activePromos = getActivePromotions().filter(p => isPromotionActive(p, now));
+  const activePromos = store.getActivePromotions().filter(p => isPromotionActive(p, now));
   const priorityOrder: Record<string, number> = { item: 0, category: 1, all: 2 };
   activePromos.sort((a, b) => priorityOrder[a.applies_to] - priorityOrder[b.applies_to]);
 
-  const items = getItemsByOrderId(order.id).map(item => {
-    const menuItem  = getMenuItemById(item.menu_item_id);
+  const items = store.getItemsByOrderId(order.id).map(item => {
+    const menuItem  = store.getMenuItemById(item.menu_item_id);
     const matched   = menuItem ? activePromos.find(p => matchesPromotion(p, menuItem)) : undefined;
-    // Si el item no tiene effective_price pero ahora hay promo activa, recalcular
     const effectivePrice = item.effective_price != null
       ? item.effective_price
       : (matched && menuItem ? calcEffectivePrice(menuItem.price, item.quantity, matched) : null);
     return {
       ...item,
-      effective_price:  effectivePrice,
-      promotion_name:   matched?.name  ?? null,
-      promotion_type:   matched?.type  ?? null,
+      effective_price: effectivePrice,
+      promotion_name:  matched?.name ?? null,
+      promotion_type:  matched?.type ?? null,
       menu_item: menuItem,
     };
   });
   return { ...order, table, items };
 }
 
+const router = Router();
+router.use(authMiddleware);
+
 // GET /api/orders?status=kitchen  OR  /api/orders?table_id=t1
 router.get('/', (req: AuthRequest, res: Response): void => {
   const { status, table_id } = req.query;
   if (table_id) {
-    res.json(getOrdersByTable(table_id as string).map(enrichOrder));
+    res.json(req.store.getOrdersByTable(table_id as string).map(o => enrichOrder(o, req.store)));
     return;
   }
-  res.json(getOrders(status as string | undefined).map(enrichOrder));
+  res.json(req.store.getOrders(status as string | undefined).map(o => enrichOrder(o, req.store)));
 });
 
 // GET /api/orders/table/:tableId
 router.get('/table/:tableId', validateParams(tableIdParamSchema), (req: AuthRequest, res: Response): void => {
-  const order = getActiveOrderByTable(req.params.tableId);
-  if (!order) {
-    res.status(404).json({ error: 'No hay pedido activo para esta mesa' });
-    return;
-  }
-  res.json(enrichOrder(order));
+  const order = req.store.getActiveOrderByTable(req.params.tableId);
+  if (!order) { res.status(404).json({ error: 'No hay pedido activo para esta mesa' }); return; }
+  res.json(enrichOrder(order, req.store));
 });
 
 // GET /api/orders/:id
 router.get('/:id', validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
-  const order = getOrderById(req.params.id);
-  if (!order) {
-    res.status(404).json({ error: 'Pedido no encontrado' });
-    return;
-  }
-  res.json(enrichOrder(order));
+  const order = req.store.getOrderById(req.params.id);
+  if (!order) { res.status(404).json({ error: 'Pedido no encontrado' }); return; }
+  res.json(enrichOrder(order, req.store));
 });
 
-// POST /api/orders — crear pedido (idempotente) - solo mesero/manager
+// POST /api/orders — crear pedido (idempotente)
 router.post('/', requirePermission('orders', 'create'), (req: AuthRequest, res: Response): void => {
   const v = validate(createOrderSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const { table_id } = v.data;
-  const table = getTableById(table_id);
-  if (!table) {
-    res.status(404).json({ error: 'Mesa no encontrada' });
-    return;
-  }
+  const table = req.store.getTableById(table_id);
+  if (!table) { res.status(404).json({ error: 'Mesa no encontrada' }); return; }
 
-  const existing = getActiveOrderByTable(table_id);
-  if (existing) {
-    res.status(200).json(enrichOrder(existing));
-    return;
-  }
+  const existing = req.store.getActiveOrderByTable(table_id);
+  if (existing) { res.status(200).json(enrichOrder(existing, req.store)); return; }
 
   const newOrder: Order = {
-    id: nextOrderId(),
+    id: req.store.nextOrderId(),
     table_id,
     waiter_id: req.user!.id,
     status: 'open',
     created_at: new Date().toISOString(),
   };
-  insertOrder(newOrder);
-  updateTable(table_id, { status: 'occupied', last_interaction_at: new Date().toISOString() });
-  res.status(201).json(enrichOrder(newOrder));
+  req.store.insertOrder(newOrder);
+  req.store.updateTable(table_id, { status: 'occupied', last_interaction_at: new Date().toISOString() });
+  res.status(201).json(enrichOrder(newOrder, req.store));
 });
 
 // PATCH /api/orders/:id/status
 router.patch('/:id/status', requirePermission('orders', 'updateStatus'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
-  const order = getOrderById(req.params.id);
-  if (!order) {
-    res.status(404).json({ error: 'Pedido no encontrado' });
-    return;
-  }
+  const order = req.store.getOrderById(req.params.id);
+  if (!order) { res.status(404).json({ error: 'Pedido no encontrado' }); return; }
 
   const v = validate(updateOrderStatusSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
   const { status } = v.data;
 
-  // Bug #1 fix: bloquear cobro si no hay sesión de caja activa
   if (status === 'billed') {
-    const session = getActiveCajaSession();
+    const session = req.store.getActiveCajaSession();
     if (!session) {
       res.status(409).json({ error: 'No hay una sesión de caja abierta. Abre la caja antes de cobrar.' });
       return;
     }
-    updateOrder(order.id, { status, caja_session_id: session.id, cashier_id: session.cashier_id });
+    req.store.updateOrder(order.id, { status, caja_session_id: session.id, cashier_id: session.cashier_id });
   } else {
-    updateOrder(order.id, { status });
+    req.store.updateOrder(order.id, { status });
   }
 
   const now = new Date().toISOString();
-  if (status === 'kitchen') updateTable(order.table_id, { status: 'occupied', last_interaction_at: now });
-  if (status === 'ready')   updateTable(order.table_id, { status: 'ready' });
-  if (status === 'billing') updateTable(order.table_id, { status: 'billing', last_interaction_at: now });
-  if (status === 'billed')  updateTable(order.table_id, { status: 'free', last_interaction_at: undefined });
+  if (status === 'kitchen') req.store.updateTable(order.table_id, { status: 'occupied', last_interaction_at: now });
+  if (status === 'ready')   req.store.updateTable(order.table_id, { status: 'ready' });
+  if (status === 'billing') req.store.updateTable(order.table_id, { status: 'billing', last_interaction_at: now });
+  if (status === 'billed')  req.store.updateTable(order.table_id, { status: 'free', last_interaction_at: undefined });
 
-  const enriched = enrichOrder(getOrderById(order.id)!);
-  const io = getIO();
-  io.to('waiters').to('kitchen').emit('order:updated', { order: enriched });
+  const enriched = enrichOrder(req.store.getOrderById(order.id)!, req.store);
+  const tio = getTenantIO(req.tenantSlug);
+  tio.to('waiters').to('kitchen').emit('order:updated', { order: enriched });
   if (status === 'ready') {
-    const table = getTableById(order.table_id);
-    io.to('waiters').emit('order:ready', { orderId: order.id, tableId: order.table_id, tableNumber: table?.number });
+    const table = req.store.getTableById(order.table_id);
+    tio.to('waiters').emit('order:ready', { orderId: order.id, tableId: order.table_id, tableNumber: table?.number });
   }
   if (enriched.table) {
-    io.to('waiters').emit('table:updated', { table: enriched.table });
+    tio.to('waiters').emit('table:updated', { table: enriched.table });
   }
-
   res.json(enriched);
 });
 
 // POST /api/orders/:id/items
 router.post('/:id/items', requirePermission('orders', 'addItem'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
-  const order = getOrderById(req.params.id);
-  if (!order) {
-    res.status(404).json({ error: 'Pedido no encontrado' });
-    return;
-  }
+  const order = req.store.getOrderById(req.params.id);
+  if (!order) { res.status(404).json({ error: 'Pedido no encontrado' }); return; }
 
-  // Bug #2 fix: verificar que el mesero sigue asignado a la mesa del pedido
   if (req.user!.role === 'waiter') {
-    const table = getTableById(order.table_id);
+    const table = req.store.getTableById(order.table_id);
     if (table && table.assigned_waiter_id !== null && table.assigned_waiter_id !== req.user!.id) {
       res.status(403).json({ error: 'Esta mesa ya no está asignada a ti.' });
       return;
@@ -188,68 +162,50 @@ router.post('/:id/items', requirePermission('orders', 'addItem'), validateParams
 
   const v = validate(addOrderItemSchema, req.body);
   if (!v.success) { res.status(400).json({ error: v.error }); return; }
-  const { menu_item_id, quantity: qty_input, notes } = v.data;
-  const menuItem = getMenuItemById(menu_item_id);
-  if (!menuItem) {
-    res.status(404).json({ error: 'Plato no encontrado' });
-    return;
-  }
+  const { menu_item_id, quantity: qty, notes } = v.data;
+  const menuItem = req.store.getMenuItemById(menu_item_id);
+  if (!menuItem) { res.status(404).json({ error: 'Plato no encontrado' }); return; }
 
-  const qty = qty_input;
-
-  // Validar stock
   if (menuItem.stock !== null && menuItem.stock !== undefined && menuItem.stock < qty) {
     res.status(400).json({ error: `Stock insuficiente (disponible: ${menuItem.stock})` });
     return;
   }
 
-  // Aplicar promoción activa si corresponde
   const now = new Date();
-  const activePromos = getActivePromotions().filter(p => isPromotionActive(p, now));
+  const activePromos = req.store.getActivePromotions().filter(p => isPromotionActive(p, now));
   const priorityOrder: Record<string, number> = { item: 0, category: 1, all: 2 };
   activePromos.sort((a, b) => priorityOrder[a.applies_to] - priorityOrder[b.applies_to]);
   const matchedPromo = activePromos.find(p => matchesPromotion(p, menuItem));
 
-  // Determinar ronda del nuevo ítem
-  const currentRound = getCurrentRound(order.id);
+  const currentRound = req.store.getCurrentRound(order.id);
   const itemRound = (order.status === 'kitchen' || order.status === 'ready')
     ? currentRound + 1
     : currentRound;
 
-  // Merge: si ya existe una fila con el mismo plato (y sin notas especiales, y misma ronda), sumar cantidad
-  const existingItems = getItemsByOrderId(order.id);
+  const existingItems = req.store.getItemsByOrderId(order.id);
   const existingItem = notes
     ? undefined
     : existingItems.find(i => i.menu_item_id === menu_item_id && !i.notes && i.round === itemRound);
 
   if (existingItem) {
     const newQty = existingItem.quantity + qty;
-    const effectivePrice = matchedPromo
-      ? calcEffectivePrice(menuItem.price, newQty, matchedPromo)
-      : null;
-    updateOrderItemQuantity(existingItem.id, newQty, effectivePrice);
-    const updated = getOrderItemById(existingItem.id)!;
-
-    if (menuItem.stock !== null && menuItem.stock !== undefined) adjustStock(menuItem.id, -qty);
-
+    const effectivePrice = matchedPromo ? calcEffectivePrice(menuItem.price, newQty, matchedPromo) : null;
+    req.store.updateOrderItemQuantity(existingItem.id, newQty, effectivePrice);
+    const updated = req.store.getOrderItemById(existingItem.id)!;
+    if (menuItem.stock !== null && menuItem.stock !== undefined) req.store.adjustStock(menuItem.id, -qty);
     if (order.status === 'ready' && order.delivered_at) {
-      updateOrder(order.id, { status: 'open' });
-      updateTable(order.table_id, { status: 'occupied' });
+      req.store.updateOrder(order.id, { status: 'open' });
+      req.store.updateTable(order.table_id, { status: 'occupied' });
     }
-
     const itemResult = { ...updated, menu_item: menuItem, promotion_name: matchedPromo?.name ?? null, promotion_type: matchedPromo?.type ?? null };
-    const io = getIO();
-    io.to('kitchen').to('waiters').emit('order:item_added', { orderId: order.id, item: itemResult });
+    getTenantIO(req.tenantSlug).to('kitchen').to('waiters').emit('order:item_added', { orderId: order.id, item: itemResult });
     res.status(200).json(itemResult);
     return;
   }
 
-  const effectivePrice = matchedPromo
-    ? calcEffectivePrice(menuItem.price, qty, matchedPromo)
-    : undefined;
-
+  const effectivePrice = matchedPromo ? calcEffectivePrice(menuItem.price, qty, matchedPromo) : undefined;
   const newItem: OrderItem = {
-    id: nextOrderItemId(),
+    id: req.store.nextOrderItemId(),
     order_id: order.id,
     menu_item_id,
     quantity: qty,
@@ -258,97 +214,78 @@ router.post('/:id/items', requirePermission('orders', 'addItem'), validateParams
     effective_price: effectivePrice,
     round: itemRound,
   };
-  insertOrderItem(newItem);
-  if (menuItem.stock !== null && menuItem.stock !== undefined) adjustStock(menuItem.id, -qty);
-
-  // Segunda ronda: si el pedido ya fue entregado, volver a estado open
+  req.store.insertOrderItem(newItem);
+  if (menuItem.stock !== null && menuItem.stock !== undefined) req.store.adjustStock(menuItem.id, -qty);
   if (order.status === 'ready' && order.delivered_at) {
-    updateOrder(order.id, { status: 'open' });
-    updateTable(order.table_id, { status: 'occupied' });
+    req.store.updateOrder(order.id, { status: 'open' });
+    req.store.updateTable(order.table_id, { status: 'occupied' });
   }
-
   const itemResult = { ...newItem, menu_item: menuItem, promotion_name: matchedPromo?.name ?? null, promotion_type: matchedPromo?.type ?? null };
-  const io = getIO();
-  io.to('kitchen').to('waiters').emit('order:item_added', { orderId: order.id, item: itemResult });
+  getTenantIO(req.tenantSlug).to('kitchen').to('waiters').emit('order:item_added', { orderId: order.id, item: itemResult });
   res.status(201).json(itemResult);
 });
 
-// PATCH /api/orders/:id/items/:itemId — actualizar cantidad
+// PATCH /api/orders/:id/items/:itemId
 router.patch('/:id/items/:itemId', requirePermission('orders', 'updateItem'), validateParams(idParamSchema), validateParams(itemIdParamSchema), (req: AuthRequest, res: Response): void => {
-  const order = getOrderById(req.params.id);
-  if (!order) {
-    res.status(404).json({ error: 'Pedido no encontrado' });
-    return;
-  }
+  const order = req.store.getOrderById(req.params.id);
+  if (!order) { res.status(404).json({ error: 'Pedido no encontrado' }); return; }
 
-  // Bug #2 fix: verificar que el mesero sigue asignado a la mesa del pedido
   if (req.user!.role === 'waiter') {
-    const table = getTableById(order.table_id);
+    const table = req.store.getTableById(order.table_id);
     if (table && table.assigned_waiter_id !== null && table.assigned_waiter_id !== req.user!.id) {
       res.status(403).json({ error: 'Esta mesa ya no está asignada a ti.' });
       return;
     }
   }
 
-  const item = getOrderItemById(req.params.itemId);
-  if (!item) {
-    res.status(404).json({ error: 'Item no encontrado' });
-    return;
-  }
+  const item = req.store.getOrderItemById(req.params.itemId);
+  if (!item) { res.status(404).json({ error: 'Item no encontrado' }); return; }
 
   const vq = validate(updateOrderItemQtySchema, req.body);
   if (!vq.success) { res.status(400).json({ error: vq.error }); return; }
   const { quantity } = vq.data;
 
-  // Validar y ajustar stock si aplica
-  const menuItem = getMenuItemById(item.menu_item_id)!;
+  const menuItem = req.store.getMenuItemById(item.menu_item_id)!;
   if (menuItem.stock !== null && menuItem.stock !== undefined) {
     const delta = quantity - item.quantity;
     if (delta > 0 && menuItem.stock < delta) {
       res.status(400).json({ error: `Stock insuficiente (disponible: ${menuItem.stock})` });
       return;
     }
-    if (delta !== 0) adjustStock(item.menu_item_id, -delta);
+    if (delta !== 0) req.store.adjustStock(item.menu_item_id, -delta);
   }
 
-  // Recalcular effective_price con la nueva cantidad
   const now = new Date();
-  const activePromos = getActivePromotions().filter(p => isPromotionActive(p, now));
+  const activePromos = req.store.getActivePromotions().filter(p => isPromotionActive(p, now));
   const priorityOrder: Record<string, number> = { item: 0, category: 1, all: 2 };
   activePromos.sort((a, b) => priorityOrder[a.applies_to] - priorityOrder[b.applies_to]);
   const matchedPromo = activePromos.find(p => matchesPromotion(p, menuItem));
-  const effectivePrice = matchedPromo
-    ? calcEffectivePrice(menuItem.price, quantity, matchedPromo)
-    : null;
+  const effectivePrice = matchedPromo ? calcEffectivePrice(menuItem.price, quantity, matchedPromo) : null;
 
-  updateOrderItemQuantity(item.id, quantity, effectivePrice);
-  const updated = getOrderItemById(item.id)!;
+  req.store.updateOrderItemQuantity(item.id, quantity, effectivePrice);
+  const updated = req.store.getOrderItemById(item.id)!;
   const result = { ...updated, menu_item: menuItem, promotion_name: matchedPromo?.name ?? null, promotion_type: matchedPromo?.type ?? null };
-  getIO().to('waiters').emit('order:item_updated', { orderId: order.id, item: result });
+  getTenantIO(req.tenantSlug).to('waiters').emit('order:item_updated', { orderId: order.id, item: result });
   res.json(result);
 });
 
 // DELETE /api/orders/:id/items/:itemId
 router.delete('/:id/items/:itemId', requirePermission('orders', 'deleteItem'), validateParams(idParamSchema), validateParams(itemIdParamSchema), (req: AuthRequest, res: Response): void => {
-  const item = getOrderItemById(req.params.itemId);
+  const item = req.store.getOrderItemById(req.params.itemId);
   if (item) {
-    const mi = getMenuItemById(item.menu_item_id);
-    if (mi && mi.stock !== null && mi.stock !== undefined) adjustStock(item.menu_item_id, item.quantity);
+    const mi = req.store.getMenuItemById(item.menu_item_id);
+    if (mi && mi.stock !== null && mi.stock !== undefined) req.store.adjustStock(item.menu_item_id, item.quantity);
   }
-  deleteOrderItem(req.params.itemId);
+  req.store.deleteOrderItem(req.params.itemId);
   res.json({ success: true });
 });
 
 // PATCH /api/orders/:id/deliver
 router.patch('/:id/deliver', requirePermission('orders', 'deliver'), validateParams(idParamSchema), (req: AuthRequest, res: Response): void => {
-  const order = getOrderById(req.params.id);
-  if (!order) {
-    res.status(404).json({ error: 'Pedido no encontrado' });
-    return;
-  }
+  const order = req.store.getOrderById(req.params.id);
+  if (!order) { res.status(404).json({ error: 'Pedido no encontrado' }); return; }
 
-  // Bug #3 fix: validar que todos los ítems estén listos antes de entregar
-  const items = getItemsByOrderId(order.id);
+  const items = req.store.getItemsByOrderId(order.id);
   const pendingItems = items.filter(i => i.status !== 'done');
   if (pendingItems.length > 0) {
     res.status(409).json({
@@ -359,24 +296,21 @@ router.patch('/:id/deliver', requirePermission('orders', 'deliver'), validatePar
   }
 
   const now = new Date().toISOString();
-  updateOrder(order.id, { delivered_at: now });
-  updateTable(order.table_id, { status: 'served', last_interaction_at: now });
-  res.json(enrichOrder(getOrderById(order.id)!));
+  req.store.updateOrder(order.id, { delivered_at: now });
+  req.store.updateTable(order.table_id, { status: 'served', last_interaction_at: now });
+  res.json(enrichOrder(req.store.getOrderById(order.id)!, req.store));
 });
 
 // PATCH /api/orders/items/:itemId/status — solo cocina/manager
 router.patch('/items/:itemId/status', requirePermission('orders', 'updateItemStatus'), (req: AuthRequest, res: Response): void => {
-  const item = getOrderItemById(req.params.itemId);
-  if (!item) {
-    res.status(404).json({ error: 'Item no encontrado' });
-    return;
-  }
+  const item = req.store.getOrderItemById(req.params.itemId);
+  if (!item) { res.status(404).json({ error: 'Item no encontrado' }); return; }
   const vs = validate(updateOrderItemStatusSchema, req.body);
   if (!vs.success) { res.status(400).json({ error: vs.error }); return; }
   const { status } = vs.data;
-  updateOrderItemStatus(item.id, status);
-  const menuItem = getMenuItemById(item.menu_item_id);
-  getIO().to('waiters').emit('order:item_status', { orderId: item.order_id, itemId: item.id, status });
+  req.store.updateOrderItemStatus(item.id, status);
+  const menuItem = req.store.getMenuItemById(item.menu_item_id);
+  getTenantIO(req.tenantSlug).to('waiters').emit('order:item_status', { orderId: item.order_id, itemId: item.id, status });
   res.json({ ...item, status, menu_item: menuItem });
 });
 

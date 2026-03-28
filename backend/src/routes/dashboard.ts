@@ -1,5 +1,4 @@
 import { Router, Response } from 'express';
-import { db } from '../db/database';
 import { authMiddleware, AuthRequest, requirePermission } from '../middleware/auth';
 
 const router = Router();
@@ -7,27 +6,25 @@ router.use(authMiddleware);
 
 // GET /api/dashboard
 router.get('/', requirePermission('dashboard', 'read'), (req: AuthRequest, res: Response): void => {
+  const db = req.store.getRawDb();
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayISO = todayStart.toISOString();
 
-  // Ventas del día y cantidad de pedidos cerrados
   const salesRow = db.prepare(`
     SELECT COALESCE(SUM(oi.quantity * COALESCE(oi.effective_price, m.price)), 0) AS total,
-           COUNT(DISTINCT o.id)                    AS order_count
+           COUNT(DISTINCT o.id) AS order_count
     FROM orders o
     JOIN order_items oi ON oi.order_id = o.id
     JOIN menu_items  m  ON m.id = oi.menu_item_id
     WHERE o.status = 'billed' AND o.created_at >= ?
   `).get(todayISO) as { total: number; order_count: number };
 
-  // Mesas activas ahora
   const occupiedRow = db.prepare(
     `SELECT COUNT(*) AS count FROM tables WHERE status != 'free'`
   ).get() as { count: number };
 
-  // Top 5 platos más pedidos hoy
   const topItems = db.prepare(`
     SELECT m.name, SUM(oi.quantity) AS total_qty
     FROM order_items oi
@@ -39,7 +36,6 @@ router.get('/', requirePermission('dashboard', 'read'), (req: AuthRequest, res: 
     LIMIT 5
   `).all(todayISO) as { name: string; total_qty: number }[];
 
-  // Tiempo promedio de atención en minutos (pedidos cerrados hoy con entrega registrada)
   const avgRow = db.prepare(`
     SELECT AVG(
       (JULIANDAY(delivered_at) - JULIANDAY(created_at)) * 1440

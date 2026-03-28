@@ -1,9 +1,8 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { getUserByEmail } from '../db/store';
-import { JWT_SECRET } from '../middleware/auth';
+import { AuthRequest, JWT_SECRET } from '../middleware/auth';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -12,7 +11,7 @@ const loginSchema = z.object({
 
 const router = Router();
 
-router.post('/login', (req: Request, res: Response): void => {
+router.post('/login', (req: AuthRequest, res: Response): void => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     const issues = (parsed.error as any).issues ?? [];
@@ -21,7 +20,7 @@ router.post('/login', (req: Request, res: Response): void => {
   }
 
   const { email, password } = parsed.data;
-  const user = getUserByEmail(email);
+  const user = req.store.getUserByEmail(email);
 
   if (!user || !bcrypt.compareSync(password, user.password)) {
     res.status(401).json({ error: 'Credenciales incorrectas' });
@@ -29,7 +28,7 @@ router.post('/login', (req: Request, res: Response): void => {
   }
 
   const token = jwt.sign(
-    { id: user.id, role: user.role, name: user.name },
+    { id: user.id, role: user.role, name: user.name, tenant: req.tenantSlug },
     JWT_SECRET,
     { expiresIn: '8h' }
   );

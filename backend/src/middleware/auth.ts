@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { canAccess } from '../config/permissions.config';
+import type { Store } from '../db/store';
 
 // JWT_SECRET: obligatorio en produccion, auto-generado en desarrollo
 const envSecret = process.env.JWT_SECRET;
@@ -12,7 +13,11 @@ if (!envSecret && process.env.NODE_ENV === 'production') {
 export const JWT_SECRET = envSecret || crypto.randomBytes(64).toString('hex');
 
 export interface AuthRequest extends Request {
-  user?: { id: string; role: string; name: string };
+  user?: { id: string; role: string; name: string; tenant?: string };
+  // Inyectados por tenantMiddleware:
+  tenantSlug: string;
+  tenantId:   string;
+  store:      Store;
 }
 
 /** Middleware para roles específicos */
@@ -48,7 +53,16 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
     return;
   }
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; role: string; name: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; role: string; name: string; tenant?: string };
+
+    // En producción validar que el token corresponde al tenant del request
+    if (process.env.NODE_ENV === 'production' && decoded.tenant && req.tenantSlug) {
+      if (decoded.tenant !== req.tenantSlug) {
+        res.status(403).json({ error: 'Token no válido para este restaurante' });
+        return;
+      }
+    }
+
     req.user = decoded;
     next();
   } catch {

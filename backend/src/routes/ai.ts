@@ -1,8 +1,6 @@
 import { Router, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { authMiddleware, AuthRequest, requireRole, requirePermission } from '../middleware/auth';
-import { getMenuItemById, getMenuItems } from '../db/store';
-import { db } from '../db/database';
 
 const router = Router();
 router.use(authMiddleware);
@@ -16,11 +14,11 @@ router.post('/pairing', requirePermission('ai', 'pairing'), async (req: AuthRequ
   const { itemId } = req.body as { itemId?: string };
   if (!itemId) { res.status(400).json({ error: 'Falta itemId' }); return; }
 
-  const item = getMenuItemById(itemId);
+  const item = req.store.getMenuItemById(itemId);
   if (!item) { res.status(404).json({ error: 'Plato no encontrado' }); return; }
 
   // Solo los platos disponibles que NO sean el plato solicitado
-  const available = getMenuItems()
+  const available = req.store.getMenuItems()
     .filter(m => m.available && m.id !== itemId)
     .map(m => `- ${m.name} (${m.category}) S/${m.price}`);
 
@@ -51,7 +49,7 @@ Sugiere 2 acompañamientos ideales (bebida o postre). Para cada uno, indica el n
 
     // Enriquecer con datos del menú para incluir id y precio
     const enriched = suggestions.map(s => {
-      const found = getMenuItems().find(m =>
+      const found = req.store.getMenuItems().find(m =>
         m.name.toLowerCase().trim() === s.name.toLowerCase().trim()
       );
       return found
@@ -69,7 +67,8 @@ Sugiere 2 acompañamientos ideales (bebida o postre). Para cada uno, indica el n
 // ---------------------------------------------------------------------------
 // 4.2  GET /api/ai/shift-summary  — resumen narrativo del turno (gerente)
 // ---------------------------------------------------------------------------
-router.get('/shift-summary', requireRole('manager'), async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/shift-summary', requireRole('manager'), async (req: AuthRequest, res: Response): Promise<void> => {
+  const db = req.store.getRawDb();
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayISO = todayStart.toISOString();
@@ -153,7 +152,9 @@ Escribe un resumen ejecutivo breve (3-5 oraciones) y amigable en español. Menci
 // ---------------------------------------------------------------------------
 // 4.3  GET /api/ai/delay-check  — detección de pedidos demorados
 // ---------------------------------------------------------------------------
-router.get('/delay-check', requirePermission('ai', 'delayCheck'), async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/delay-check', requirePermission('ai', 'delayCheck'), async (req: AuthRequest, res: Response): Promise<void> => {
+  const db = req.store.getRawDb();
+
   // Promedio histórico (últimos 30 días, pedidos completados)
   const histRow = db.prepare(`
     SELECT AVG((JULIANDAY(delivered_at) - JULIANDAY(created_at)) * 1440) AS avg_minutes
@@ -211,7 +212,8 @@ Redacta un alerta corta y accionable (1-2 oraciones) para el gerente, en españo
 // ---------------------------------------------------------------------------
 // 4.4  GET /api/ai/menu-recommendations  — recomendaciones por hora
 // ---------------------------------------------------------------------------
-router.get('/menu-recommendations', requirePermission('ai', 'menuRecommendations'), async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/menu-recommendations', requirePermission('ai', 'menuRecommendations'), async (req: AuthRequest, res: Response): Promise<void> => {
+  const db = req.store.getRawDb();
   const hour = new Date().getHours();
   const period = hour < 12 ? 'mañana' : hour < 16 ? 'almuerzo' : hour < 20 ? 'tarde' : 'noche';
 
@@ -229,7 +231,7 @@ router.get('/menu-recommendations', requirePermission('ai', 'menuRecommendations
     LIMIT 8
   `).all(Math.max(0, hour - 2), Math.min(23, hour + 2)) as { id: string; name: string; category: string; price: number; total_qty: number }[];
 
-  const menuList = getMenuItems().filter(m => m.available).map(m => `${m.name} (${m.category}) S/${m.price}`);
+  const menuList = req.store.getMenuItems().filter(m => m.available).map(m => `${m.name} (${m.category}) S/${m.price}`);
 
   const prompt = `Eres un experto en restaurantes peruanos. Son las ${hour}:00 (${period}).
 Platos más pedidos en esta franja (últimos 14 días): ${topByHour.map(i => i.name).join(', ') || 'sin datos aún'}.
@@ -255,7 +257,7 @@ Recomienda 3 platos para destacar ahora. Devuelve SOLO JSON:
 
     const recs = JSON.parse(jsonMatch[0]) as { name: string; reason: string }[];
     const enriched = recs.map(r => {
-      const found = getMenuItems().find(m =>
+      const found = req.store.getMenuItems().find(m =>
         m.name.toLowerCase().trim() === r.name.toLowerCase().trim()
       );
       return found
