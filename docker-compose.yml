@@ -10,11 +10,19 @@ services:
     environment:
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET}
+      - WEBMASTER_JWT_SECRET=${WEBMASTER_JWT_SECRET}
+      - WEBMASTER_EMAIL=${WEBMASTER_EMAIL:-admin@miapp.com}
+      - WEBMASTER_PASSWORD=${WEBMASTER_PASSWORD}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - FRONTEND_URL=https://${DOMAIN}
-      - DB_PATH=/data/restaurante.db
+      - FRONTEND_URL=${FRONTEND_URL:-https://*.miapp.com}
+      # Multi-tenant data directory — each tenant gets /data/tenants/{slug}/restaurante.db
+      - DATA_DIR=/data
+      # DodoPayments
+      - DODO_WEBHOOK_SECRET=${DODO_WEBHOOK_SECRET}
+      - DODO_API_KEY=${DODO_API_KEY}
     volumes:
-      - db_data:/data
+      # All tenant DBs + master DB live under /data
+      - tenant_data:/data
       - backend_logs:/app/logs
     ports:
       - "3000:3000"
@@ -36,7 +44,10 @@ services:
       - backend
 
 volumes:
-  db_data:
+  # Persistent volume for all SQLite databases:
+  #   /data/master.db              — tenants + webmaster_users
+  #   /data/tenants/{slug}/        — per-tenant DB + future backups
+  tenant_data:
     driver: local
   backend_logs:
     driver: local
