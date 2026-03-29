@@ -8,6 +8,7 @@ import { globalErrorHandler } from './middleware/errorHandler';
 import { tenantMiddleware } from './middleware/tenant';
 import webmasterAuthRoutes    from './routes/webmaster/auth';
 import webmasterTenantRoutes  from './routes/webmaster/tenants';
+import webmasterBillingRoutes from './routes/webmaster/billing';
 import authRoutes      from './routes/auth';
 import tableRoutes     from './routes/tables';
 import orderRoutes     from './routes/orders';
@@ -75,6 +76,7 @@ if (process.env.NODE_ENV === 'production') {
 // Webmaster routes — bypass tenant middleware, use master DB directly
 app.use('/webmaster/api', webmasterAuthRoutes);
 app.use('/webmaster/api/tenants', webmasterTenantRoutes);
+app.use('/webmaster/api/billing', webmasterBillingRoutes);
 
 // Tenant middleware — resolves req.store for all /api/* routes
 app.use('/api', tenantMiddleware);
