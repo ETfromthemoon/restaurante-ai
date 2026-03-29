@@ -1,12 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import { useAppStore } from './store/useAppStore';
+import { useWebmasterStore } from './store/useWebmasterStore';
 import { socketService } from './services/socketService';
 import { ToastProvider, useToast } from './hooks/useToast';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
+import WebmasterLayout from './components/WebmasterLayout';
 import PWAInstallBanner from './components/ui/PWAInstallBanner';
 import ToastContainer  from './components/ui/ToastContainer';
+import WebmasterLoginPage from './pages/WebmasterLoginPage';
+import TenantsListPage    from './pages/TenantsListPage';
 import LoginPage                from './pages/LoginPage';
 import TableMapPage             from './pages/TableMapPage';
 import OrderPage                from './pages/OrderPage';
@@ -61,9 +65,26 @@ function AppInner() {
     : user.role === 'manager' ? '/gerente'
     : '/mesas';
 
+  const { token: wmToken } = useWebmasterStore();
+
   return (
     <BrowserRouter>
       <Routes>
+        {/* ── Webmaster routes ─────────────────────────────────────────── */}
+        <Route
+          path="/webmaster/login"
+          element={!wmToken ? <WebmasterLoginPage /> : <Navigate to="/webmaster/tenants" />}
+        />
+        <Route
+          path="/webmaster/tenants"
+          element={wmToken
+            ? <WebmasterLayout><TenantsListPage /></WebmasterLayout>
+            : <Navigate to="/webmaster/login" />
+          }
+        />
+        <Route path="/webmaster" element={<Navigate to={wmToken ? '/webmaster/tenants' : '/webmaster/login'} />} />
+
+        {/* ── Tenant app routes ─────────────────────────────────────────── */}
         <Route path="/login" element={!user ? <LoginPage /> : <Navigate to={home} />} />
 
         <Route element={<ProtectedRoute roles={['waiter', 'manager']} />}>

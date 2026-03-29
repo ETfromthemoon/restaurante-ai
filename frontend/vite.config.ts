@@ -137,6 +137,10 @@ export default defineConfig({
           'X-Tenant-Slug': 'demo',
         },
       },
+      '/webmaster/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
 });
