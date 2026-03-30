@@ -24,7 +24,7 @@ interface WebmasterState {
   login:              (email: string, password: string) => Promise<void>;
   logout:             () => void;
   fetchTenants:       () => Promise<void>;
-  createTenant:       (data: { slug: string; name: string; admin_email: string; plan: string }) => Promise<{ tenant: Tenant; credentials: { email: string; tempPassword: string } }>;
+  createTenant:       (data: { slug: string; name: string; admin_email: string; plan: string; country: string }) => Promise<unknown>;
   updateTenant:       (id: string, data: Partial<Pick<Tenant, 'name' | 'plan' | 'status'>>) => Promise<void>;
   suspendTenant:      (id: string) => Promise<void>;
   activateTenant:     (id: string) => Promise<void>;
@@ -93,7 +93,7 @@ export const useWebmasterStore = create<WebmasterState>((set, get) => ({
   },
 
   async createTenant(data) {
-    const result = await wmFetch<{ tenant: Tenant; credentials: { email: string; tempPassword: string } }>(
+    const result = await wmFetch<any>(
       '/tenants',
       { method: 'POST', body: JSON.stringify(data) },
       get().token

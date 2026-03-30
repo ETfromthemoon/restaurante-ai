@@ -1,15 +1,16 @@
 /**
  * Rutas de gestión de tenants para el panel webmaster.
  *
- * GET    /webmaster/api/tenants            → listar todos
- * POST   /webmaster/api/tenants            → crear + provisionar
- * PATCH  /webmaster/api/tenants/:id        → editar (nombre, plan, status)
+ * GET    /webmaster/api/tenants               → listar todos
+ * POST   /webmaster/api/tenants               → crear + provisionar + billing
+ * PATCH  /webmaster/api/tenants/:id           → editar (nombre, plan, status)
  * POST   /webmaster/api/tenants/:id/suspend   → suspender
  * POST   /webmaster/api/tenants/:id/activate  → activar
- * DELETE /webmaster/api/tenants/:id        → eliminar (hard delete)
+ * DELETE /webmaster/api/tenants/:id           → eliminar (hard delete)
  */
 import { Router, Response } from 'express';
 import { z } from 'zod';
+import DodoPayments from 'dodopayments';
 import { masterStore } from '../../db/masterDatabase';
 import { tenantPool } from '../../db/tenantPool';
 import { webmasterAuthMiddleware, WebmasterRequest } from '../../middleware/webmasterAuth';
@@ -17,7 +18,20 @@ import { webmasterAuthMiddleware, WebmasterRequest } from '../../middleware/webm
 const router = Router();
 router.use(webmasterAuthMiddleware);
 
-// ── Schemas ──────────────────────────────────────────────────────────────────
+// ── DodoPayments client ───────────────────────────────────────────────────────
+
+const DODO_API_KEY     = process.env.DODO_API_KEY ?? '';
+const DODO_PRODUCT_ID  = process.env.DODO_PRODUCT_ID ?? '';
+const BASE_DOMAIN      = process.env.BASE_DOMAIN ?? 'miapp.com';
+const DODO_ENABLED     = !!(DODO_API_KEY && DODO_PRODUCT_ID);
+
+// In test_mode Dodo doesn't charge — switch to 'live_mode' in production
+const dodoEnv = process.env.NODE_ENV === 'production' ? 'live_mode' : 'test_mode';
+const dodo = DODO_ENABLED
+  ? new DodoPayments({ bearerToken: DODO_API_KEY, environment: dodoEnv })
+  : null;
+
+// ── Schemas ───────────────────────────────────────────────────────────────────
 
 const createTenantSchema = z.object({
   slug:        z.string()
@@ -26,6 +40,7 @@ const createTenantSchema = z.object({
   name:        z.string().min(2).max(100),
   admin_email: z.string().email(),
   plan:        z.enum(['basic', 'pro', 'enterprise']).default('basic'),
+  country:     z.string().length(2).default('PE'),   // ISO 3166-1 alpha-2
 });
 
 const updateTenantSchema = z.object({
@@ -34,12 +49,50 @@ const updateTenantSchema = z.object({
   status: z.enum(['active', 'suspended', 'trial']).optional(),
 }).strict();
 
-// ── Routes ───────────────────────────────────────────────────────────────────
+// ── Billing helper ────────────────────────────────────────────────────────────
+
+interface BillingResult {
+  customerId:     string | null;
+  subscriptionId: string | null;
+  paymentLink:    string | null;
+}
+
+async function createDodoSubscription(
+  tenantId:   string,
+  tenantName: string,
+  email:      string,
+  slug:       string,
+  country:    string,
+): Promise<BillingResult> {
+  if (!dodo) {
+    // Billing not configured — activate immediately (dev/demo mode)
+    return { customerId: null, subscriptionId: null, paymentLink: null };
+  }
+
+  const returnUrl = `https://${slug}.${BASE_DOMAIN}/login`;
+
+  const result = await dodo.subscriptions.create({
+    billing:      { country: country as any },
+    customer:     { email, name: tenantName },
+    product_id:   DODO_PRODUCT_ID,
+    quantity:     1,
+    payment_link: true,
+    return_url:   returnUrl,
+    metadata:     { tenant_id: tenantId },
+  });
+
+  return {
+    customerId:     result.customer?.customer_id ?? null,
+    subscriptionId: result.subscription_id,
+    paymentLink:    result.payment_link ?? null,
+  };
+}
+
+// ── Routes ────────────────────────────────────────────────────────────────────
 
 // GET /webmaster/api/tenants
 router.get('/', (_req: WebmasterRequest, res: Response): void => {
-  const tenants = masterStore.getAllTenants();
-  res.json(tenants);
+  res.json(masterStore.getAllTenants());
 });
 
 // GET /webmaster/api/tenants/:id
@@ -49,8 +102,8 @@ router.get('/:id', (req: WebmasterRequest, res: Response): void => {
   res.json(tenant);
 });
 
-// POST /webmaster/api/tenants — crear y provisionar nuevo restaurante
-router.post('/', (req: WebmasterRequest, res: Response): void => {
+// POST /webmaster/api/tenants — crear + provisionar + billing
+router.post('/', async (req: WebmasterRequest, res: Response): Promise<void> => {
   const parsed = createTenantSchema.safeParse(req.body);
   if (!parsed.success) {
     const issues = (parsed.error as any).issues ?? [];
@@ -58,37 +111,64 @@ router.post('/', (req: WebmasterRequest, res: Response): void => {
     return;
   }
 
-  const { slug, name, admin_email, plan } = parsed.data;
+  const { slug, name, admin_email, plan, country } = parsed.data;
 
-  // Verificar unicidad del slug
   if (masterStore.slugExists(slug)) {
     res.status(409).json({ error: `El slug '${slug}' ya está en uso` });
     return;
   }
 
-  // Crear registro en master DB
-  const tenant = masterStore.createTenant({
-    slug,
-    name,
-    admin_email,
-    plan,
-    status: 'active',
-  });
+  // 1. Crear en master DB — empieza en 'trial' hasta que pague
+  const initialStatus = DODO_ENABLED ? 'trial' : 'active';
+  const tenant = masterStore.createTenant({ slug, name, admin_email, plan, status: initialStatus });
 
-  // Provisionar DB del tenant (crea directorio + schema + seed)
+  // 2. Provisionar DB del tenant (directorio + schema + seed + usuario gerente)
   const tempPassword = tenantPool.provisionTenant(slug, admin_email);
 
+  // 3. Crear subscription en DodoPayments
+  let billing: BillingResult = { customerId: null, subscriptionId: null, paymentLink: null };
+  let billingError: string | null = null;
+
+  try {
+    billing = await createDodoSubscription(tenant.id, name, admin_email, slug, country);
+
+    if (billing.customerId || billing.subscriptionId) {
+      masterStore.updateTenant(tenant.id, {
+        dodo_customer_id:         billing.customerId,
+        dodo_subscription_id:     billing.subscriptionId,
+        dodo_subscription_status: 'pending',
+      });
+    }
+  } catch (err: any) {
+    // Billing failed but tenant is already provisioned — log and continue
+    billingError = err?.message ?? 'Error al crear la suscripción en DodoPayments';
+    console.error('[Dodo] createSubscription failed:', billingError);
+  }
+
+  // Reload tenant with updated Dodo fields
+  const finalTenant = masterStore.getTenantById(tenant.id)!;
+
   res.status(201).json({
-    tenant,
+    tenant:  finalTenant,
     credentials: {
-      email: admin_email,
+      email:       admin_email,
       tempPassword,
-      message: 'Comparte estas credenciales con el administrador del restaurante',
+      message:     'Comparte estas credenciales con el administrador del restaurante',
+    },
+    billing: {
+      enabled:     DODO_ENABLED,
+      paymentLink: billing.paymentLink,
+      error:       billingError,
+      message:     billing.paymentLink
+        ? 'Envía este link de pago al cliente para activar su suscripción'
+        : DODO_ENABLED
+          ? 'No se pudo generar el link de pago — activa el tenant manualmente tras el pago'
+          : 'Billing no configurado — tenant activado directamente',
     },
   });
 });
 
-// PATCH /webmaster/api/tenants/:id — editar metadata
+// PATCH /webmaster/api/tenants/:id
 router.patch('/:id', (req: WebmasterRequest, res: Response): void => {
   const tenant = masterStore.getTenantById(req.params.id);
   if (!tenant) { res.status(404).json({ error: 'Tenant no encontrado' }); return; }
@@ -100,8 +180,7 @@ router.patch('/:id', (req: WebmasterRequest, res: Response): void => {
     return;
   }
 
-  const updated = masterStore.updateTenant(req.params.id, parsed.data);
-  res.json(updated);
+  res.json(masterStore.updateTenant(req.params.id, parsed.data));
 });
 
 // POST /webmaster/api/tenants/:id/suspend
@@ -112,26 +191,21 @@ router.post('/:id/suspend', (req: WebmasterRequest, res: Response): void => {
     res.status(409).json({ error: 'El tenant ya está suspendido' });
     return;
   }
-  const updated = masterStore.updateTenant(req.params.id, { status: 'suspended' });
-  res.json(updated);
+  res.json(masterStore.updateTenant(req.params.id, { status: 'suspended' }));
 });
 
 // POST /webmaster/api/tenants/:id/activate
 router.post('/:id/activate', (req: WebmasterRequest, res: Response): void => {
   const tenant = masterStore.getTenantById(req.params.id);
   if (!tenant) { res.status(404).json({ error: 'Tenant no encontrado' }); return; }
-  const updated = masterStore.updateTenant(req.params.id, { status: 'active' });
-  res.json(updated);
+  res.json(masterStore.updateTenant(req.params.id, { status: 'active' }));
 });
 
-// DELETE /webmaster/api/tenants/:id — hard delete
+// DELETE /webmaster/api/tenants/:id
 router.delete('/:id', (req: WebmasterRequest, res: Response): void => {
   const tenant = masterStore.getTenantById(req.params.id);
   if (!tenant) { res.status(404).json({ error: 'Tenant no encontrado' }); return; }
-
-  // Cerrar la conexión DB del tenant si está activa
   tenantPool.closeDb(tenant.slug);
-
   masterStore.deleteTenant(req.params.id);
   res.status(204).send();
 });
