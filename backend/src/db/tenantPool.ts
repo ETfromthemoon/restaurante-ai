@@ -152,16 +152,17 @@ class TenantDbPool {
 
   /**
    * Provisiona un nuevo tenant: crea directorio, DB, schema y seed.
-   * @returns La contraseña temporal generada para el manager
+   * @param managerPassword Contraseña en texto plano. Si no se provee se genera una temporal.
+   * @returns La contraseña usada (para mostrarla al webmaster si fue generada)
    */
-  provisionTenant(slug: string, managerEmail: string): string {
+  provisionTenant(slug: string, managerEmail: string, managerPassword?: string): string {
     const tenantDir = path.join(DATA_DIR, 'tenants', slug);
     fs.mkdirSync(tenantDir, { recursive: true });
 
-    const tempPassword = `${slug}-${Math.random().toString(36).slice(2, 8)}`;
+    const password = managerPassword ?? `${slug}-${Math.random().toString(36).slice(2, 8)}`;
     const db = this.getDb(slug);
-    seedTenantDb(db, managerEmail, tempPassword);
-    return tempPassword;
+    seedTenantDb(db, managerEmail, password);
+    return password;
   }
 
   private getDbPath(slug: string): string {

@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 
 import { globalErrorHandler } from './middleware/errorHandler';
 import { tenantMiddleware } from './middleware/tenant';
+import publicSignupRoutes     from './routes/public/signup';
 import webmasterAuthRoutes    from './routes/webmaster/auth';
 import webmasterTenantRoutes  from './routes/webmaster/tenants';
 import webmasterBillingRoutes from './routes/webmaster/billing';
@@ -72,6 +73,9 @@ if (process.env.NODE_ENV === 'production') {
     next();
   });
 }
+
+// Public self-service routes — no auth, no tenant middleware
+app.use('/public/api', publicSignupRoutes);
 
 // Webmaster routes — bypass tenant middleware, use master DB directly
 app.use('/webmaster/api', webmasterAuthRoutes);

@@ -10,26 +10,13 @@
  */
 import { Router, Response } from 'express';
 import { z } from 'zod';
-import DodoPayments from 'dodopayments';
 import { masterStore } from '../../db/masterDatabase';
 import { tenantPool } from '../../db/tenantPool';
 import { webmasterAuthMiddleware, WebmasterRequest } from '../../middleware/webmasterAuth';
+import { createSubscription, BILLING_ENABLED, BillingResult } from '../../services/billing';
 
 const router = Router();
 router.use(webmasterAuthMiddleware);
-
-// ── DodoPayments client ───────────────────────────────────────────────────────
-
-const DODO_API_KEY     = process.env.DODO_API_KEY ?? '';
-const DODO_PRODUCT_ID  = process.env.DODO_PRODUCT_ID ?? '';
-const BASE_DOMAIN      = process.env.BASE_DOMAIN ?? 'miapp.com';
-const DODO_ENABLED     = !!(DODO_API_KEY && DODO_PRODUCT_ID);
-
-// In test_mode Dodo doesn't charge — switch to 'live_mode' in production
-const dodoEnv = process.env.NODE_ENV === 'production' ? 'live_mode' : 'test_mode';
-const dodo = DODO_ENABLED
-  ? new DodoPayments({ bearerToken: DODO_API_KEY, environment: dodoEnv })
-  : null;
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -49,44 +36,6 @@ const updateTenantSchema = z.object({
   status: z.enum(['active', 'suspended', 'trial']).optional(),
 }).strict();
 
-// ── Billing helper ────────────────────────────────────────────────────────────
-
-interface BillingResult {
-  customerId:     string | null;
-  subscriptionId: string | null;
-  paymentLink:    string | null;
-}
-
-async function createDodoSubscription(
-  tenantId:   string,
-  tenantName: string,
-  email:      string,
-  slug:       string,
-  country:    string,
-): Promise<BillingResult> {
-  if (!dodo) {
-    // Billing not configured — activate immediately (dev/demo mode)
-    return { customerId: null, subscriptionId: null, paymentLink: null };
-  }
-
-  const returnUrl = `https://${slug}.${BASE_DOMAIN}/login`;
-
-  const result = await dodo.subscriptions.create({
-    billing:      { country: country as any },
-    customer:     { email, name: tenantName },
-    product_id:   DODO_PRODUCT_ID,
-    quantity:     1,
-    payment_link: true,
-    return_url:   returnUrl,
-    metadata:     { tenant_id: tenantId },
-  });
-
-  return {
-    customerId:     result.customer?.customer_id ?? null,
-    subscriptionId: result.subscription_id,
-    paymentLink:    result.payment_link ?? null,
-  };
-}
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -119,7 +68,7 @@ router.post('/', async (req: WebmasterRequest, res: Response): Promise<void> => 
   }
 
   // 1. Crear en master DB — empieza en 'trial' hasta que pague
-  const initialStatus = DODO_ENABLED ? 'trial' : 'active';
+  const initialStatus = BILLING_ENABLED ? 'trial' : 'active';
   const tenant = masterStore.createTenant({ slug, name, admin_email, plan, status: initialStatus });
 
   // 2. Provisionar DB del tenant (directorio + schema + seed + usuario gerente)
@@ -130,7 +79,10 @@ router.post('/', async (req: WebmasterRequest, res: Response): Promise<void> => 
   let billingError: string | null = null;
 
   try {
-    billing = await createDodoSubscription(tenant.id, name, admin_email, slug, country);
+    billing = await createSubscription({
+      tenantId: tenant.id, tenantName: name,
+      email: admin_email, slug, country,
+    });
 
     if (billing.customerId || billing.subscriptionId) {
       masterStore.updateTenant(tenant.id, {
@@ -156,12 +108,12 @@ router.post('/', async (req: WebmasterRequest, res: Response): Promise<void> => 
       message:     'Comparte estas credenciales con el administrador del restaurante',
     },
     billing: {
-      enabled:     DODO_ENABLED,
+      enabled:     BILLING_ENABLED,
       paymentLink: billing.paymentLink,
       error:       billingError,
       message:     billing.paymentLink
         ? 'Envía este link de pago al cliente para activar su suscripción'
-        : DODO_ENABLED
+        : BILLING_ENABLED
           ? 'No se pudo generar el link de pago — activa el tenant manualmente tras el pago'
           : 'Billing no configurado — tenant activado directamente',
     },

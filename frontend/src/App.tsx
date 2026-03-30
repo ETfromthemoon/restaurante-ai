@@ -11,6 +11,7 @@ import PWAInstallBanner from './components/ui/PWAInstallBanner';
 import ToastContainer  from './components/ui/ToastContainer';
 import WebmasterLoginPage from './pages/WebmasterLoginPage';
 import TenantsListPage    from './pages/TenantsListPage';
+import SignupPage         from './pages/SignupPage';
 import LoginPage                from './pages/LoginPage';
 import TableMapPage             from './pages/TableMapPage';
 import OrderPage                from './pages/OrderPage';
@@ -83,6 +84,9 @@ function AppInner() {
           }
         />
         <Route path="/webmaster" element={<Navigate to={wmToken ? '/webmaster/tenants' : '/webmaster/login'} />} />
+
+        {/* ── Public routes (no auth) ──────────────────────────────────── */}
+        <Route path="/signup" element={<SignupPage />} />
 
         {/* ── Tenant app routes ─────────────────────────────────────────── */}
         <Route path="/login" element={!user ? <LoginPage /> : <Navigate to={home} />} />

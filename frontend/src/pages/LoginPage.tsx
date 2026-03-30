@@ -8,6 +8,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, orderLoading: loading } = useAppStore();
+
+  // Detectar si el usuario viene de completar el pago
+  const isWelcome = new URLSearchParams(window.location.search).get('welcome') === '1';
   const { isDark, toggle } = useTheme();
   const { canInstall, isIOS, isInstalled, promptInstall } = usePWAInstall();
 
@@ -50,6 +53,14 @@ export default function LoginPage() {
       </button>
 
       <div className="glass-strong glow-soft w-full max-w-sm p-8 relative z-10">
+        {/* Banner de bienvenida post-pago */}
+        {isWelcome && (
+          <div className="mb-6 bg-green-900/40 border border-green-600 rounded-xl px-4 py-3 text-center">
+            <p className="text-green-300 font-semibold text-sm">🎉 ¡Pago exitoso!</p>
+            <p className="text-green-400 text-xs mt-0.5">Tu cuenta está lista. Inicia sesión para empezar.</p>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5 relative overflow-hidden"
                style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)', boxShadow: '0 8px 30px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
