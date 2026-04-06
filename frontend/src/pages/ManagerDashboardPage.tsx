@@ -74,7 +74,7 @@ export default function ManagerDashboardPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={fetchAiSummary} disabled={aiSummaryLoading} className="btn-accent flex items-center gap-2">
+          <button data-onboarding-id="ai-summary-btn" onClick={fetchAiSummary} disabled={aiSummaryLoading} className="btn-accent flex items-center gap-2">
             <Sparkles size={15} />
             {aiSummaryLoading ? 'Generando...' : 'Resumen IA'}
           </button>
@@ -142,7 +142,7 @@ export default function ManagerDashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div data-onboarding-id="dashboard-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <GlassCard className="relative overflow-hidden">
           <p className="text-[11px] mb-2 t-muted font-medium uppercase tracking-[0.1em]">Ventas Hoy</p>
           <p className="text-2xl font-semibold" style={{ background: 'linear-gradient(135deg, #059669, #34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -215,7 +215,7 @@ export default function ManagerDashboardPage() {
         </GlassCard>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div data-onboarding-id="quick-nav" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <button onClick={() => navigate('/gerente/menu')} className="btn-ghost justify-center flex-col gap-1.5 !py-5">
           <BookOpen size={19} className="text-accent" /><span className="text-xs font-light">Menú</span>
         </button>

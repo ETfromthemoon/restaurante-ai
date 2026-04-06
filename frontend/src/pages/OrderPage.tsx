@@ -243,6 +243,7 @@ export default function OrderPage() {
         {isOpen && (
           <>
             <button
+              data-onboarding-id="add-item-btn"
               onClick={() => navigate(`/mesas/${tableId}/pedido/menu`)}
               className="w-full rounded-2xl py-3.5 text-sm font-medium border-2 border-dashed transition-colors"
               style={{ borderColor: 'rgba(220, 38, 38, 0.3)', color: '#ef4444' }}
@@ -251,6 +252,7 @@ export default function OrderPage() {
             </button>
             {!!currentOrder?.items?.length && (
               <button
+                data-onboarding-id="send-kitchen-btn"
                 onClick={handleKitchen}
                 disabled={loading}
                 className="w-full btn-metallic-orange py-3.5 font-medium disabled:opacity-50 text-sm tracking-wide"
@@ -264,7 +266,7 @@ export default function OrderPage() {
           <p className="text-center text-sm t-muted font-light">Esperando que cocina termine los platos...</p>
         )}
         {isReady && !isServed && (
-          <button onClick={handleDeliver} disabled={loading} className="w-full btn-metallic-teal py-3.5 font-medium disabled:opacity-50 text-sm tracking-wide">
+          <button data-onboarding-id="deliver-btn" onClick={handleDeliver} disabled={loading} className="w-full btn-metallic-teal py-3.5 font-medium disabled:opacity-50 text-sm tracking-wide">
             🛎️ Entregar a mesa
           </button>
         )}

@@ -95,7 +95,7 @@ export default function TableMapPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
+      <div data-onboarding-id="mesas-header" className="flex justify-between items-center mb-4">
         <div>
           <h1 className="text-2xl font-bold">Mesas</h1>
           <p className="t-secondary text-sm mt-1">
@@ -149,8 +149,8 @@ export default function TableMapPage() {
       )}
 
       {/* Grilla de mesas */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {sortedTables.map(table => {
+      <div data-onboarding-id="table-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {sortedTables.map((table, idx) => {
           const mins           = elapsedMins(table.last_interaction_at);
           const hasNotification = readyTableIds.includes(table.id);
           const isBilling      = table.status === 'billing';
@@ -160,6 +160,7 @@ export default function TableMapPage() {
           return (
             <GlassCard
               key={table.id}
+              {...(idx === 0 ? { 'data-onboarding-id': 'table-card-first' } : {})}
               className={`relative overflow-hidden text-center
                 ${hasNotification ? 'animate-pulse' : ''}
                 ${isBilling ? 'ring-2 ring-amber-400/50' : ''}

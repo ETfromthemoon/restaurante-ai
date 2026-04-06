@@ -152,7 +152,7 @@ export default function KitchenQueuePage() {
       </div>
 
       {/* ── Zona 1: KPIs ────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div data-onboarding-id="kitchen-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           icon={<Clock size={18} className="text-accent" />}
           label="En Cola"
@@ -307,8 +307,8 @@ export default function KitchenQueuePage() {
             <p className="text-sm t-muted font-light mt-1">La cocina está al día 🎉</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {sorted.map((order: Order) => {
+          <div data-onboarding-id="kitchen-queue" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {sorted.map((order: Order, orderIdx: number) => {
               const mins      = elapsed(order.created_at);
               const urgent    = mins > 20;
               const doneCount = order.items?.filter(i => i.status === 'done').length ?? 0;
@@ -319,6 +319,7 @@ export default function KitchenQueuePage() {
               return (
                 <GlassCard
                   key={order.id}
+                  {...(orderIdx === 0 ? { 'data-onboarding-id': 'kitchen-order-card' } : {})}
                   onClick={() => navigate(`/cocina/${order.id}`)}
                   className={urgent ? '' : ''}
                 >

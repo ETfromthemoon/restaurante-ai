@@ -1,9 +1,13 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, UtensilsCrossed, ChefHat, BookOpen, Wallet, Tag, Users, LogOut, Sun, Moon, Download, Menu, X } from 'lucide-react';
+import { LayoutDashboard, UtensilsCrossed, ChefHat, BookOpen, Wallet, Tag, Users, LogOut, Sun, Moon, Download, Menu, X, HelpCircle } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useTheme } from '../store/useTheme';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { useOnboarding } from '../hooks/useOnboarding';
+import { ONBOARDING_STEPS } from './onboarding/onboardingSteps';
+import OnboardingOverlay from './onboarding/OnboardingOverlay';
+import GuideModal from './onboarding/GuideModal';
 
 interface Props { children: ReactNode; }
 
@@ -59,6 +63,19 @@ export default function DashboardLayout({ children }: Props) {
 
   const handleLogout = () => { logout(); navigate('/login'); };
   const handleNav = (path: string) => { navigate(path); setDrawerOpen(false); };
+
+  const role = user?.role as 'waiter' | 'cook' | 'manager' | undefined;
+  const steps = role ? (ONBOARDING_STEPS[role] ?? []) : [];
+  const { isActive, step, guideOpen, startTour, next, prev, skip, openGuide, closeGuide } = useOnboarding(role);
+
+  // Navigate to the route associated with the current onboarding step
+  useEffect(() => {
+    if (!isActive || !steps[step]) return;
+    const stepRoute = steps[step].route;
+    if (stepRoute && location.pathname !== stepRoute) {
+      navigate(stepRoute);
+    }
+  }, [isActive, step]);
 
   const showInstallBtn = !isInstalled && (canInstall || isIOS);
 
@@ -133,6 +150,18 @@ export default function DashboardLayout({ children }: Props) {
           </button>
         )}
 
+        {/* Guía */}
+        {steps.length > 0 && (
+          <button
+            onClick={openGuide}
+            data-onboarding-id="sidebar-nav"
+            className="flex items-center gap-1.5 w-full rounded-xl px-3 py-2 text-xs font-medium transition-colors mb-2 btn-ghost"
+          >
+            <HelpCircle size={13} className="text-accent opacity-70" />
+            <span className="font-light">Guía de uso</span>
+          </button>
+        )}
+
         {/* User */}
         <div className="mt-auto glass-card !p-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white relative overflow-hidden"
@@ -154,6 +183,7 @@ export default function DashboardLayout({ children }: Props) {
 
       {/* Mobile header */}
       <div
+        data-onboarding-id="sidebar-nav"
         className="lg:hidden fixed top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between backdrop-blur-2xl"
         style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-sidebar)' }}
       >
@@ -255,6 +285,15 @@ export default function DashboardLayout({ children }: Props) {
 
         {/* User info + theme al fondo */}
         <div className="mt-auto space-y-3">
+          {steps.length > 0 && (
+            <button
+              onClick={() => { openGuide(); setDrawerOpen(false); }}
+              className="flex items-center gap-2 w-full rounded-xl px-3 py-2.5 text-xs font-medium btn-ghost"
+            >
+              <HelpCircle size={14} className="text-accent opacity-70" />
+              <span className="font-light">Guía de uso</span>
+            </button>
+          )}
           <ThemeToggle />
           <div className="glass-card !p-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white"
@@ -278,6 +317,27 @@ export default function DashboardLayout({ children }: Props) {
       <main className="flex-1 p-6 lg:p-8 overflow-y-auto relative z-[1] lg:pt-8 pt-16">
         {children}
       </main>
+
+      {/* Onboarding overlay — tooltip burbujas */}
+      {isActive && steps.length > 0 && (
+        <OnboardingOverlay
+          steps={steps}
+          currentStep={step}
+          onNext={() => next(steps.length)}
+          onPrev={prev}
+          onSkip={skip}
+        />
+      )}
+
+      {/* Guide modal — siempre accesible */}
+      {guideOpen && steps.length > 0 && role && (
+        <GuideModal
+          steps={steps}
+          role={role}
+          onClose={closeGuide}
+          onStartTour={startTour}
+        />
+      )}
     </div>
   );
 }

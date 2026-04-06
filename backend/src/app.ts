@@ -60,9 +60,18 @@ const apiLimiter = rateLimit({
   message: { error: 'Demasiadas solicitudes. Espera 1 minuto.' },
 });
 
-app.use('/api/auth', authLimiter);
-app.use('/api/ai',   aiLimiter);
-app.use('/api',      apiLimiter);
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Espera 15 minutos.' },
+});
+
+app.use('/api/auth',   authLimiter);
+app.use('/api/ai',     aiLimiter);
+app.use('/api',        apiLimiter);
+app.use('/public/api', publicLimiter);
 
 // HTTPS redirect in production
 if (process.env.NODE_ENV === 'production') {
