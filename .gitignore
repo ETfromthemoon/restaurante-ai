@@ -23,5 +23,11 @@ build/
 .DS_Store
 Thumbs.db
 
-# Claude workspace
-.claude/
+# Claude workspace (keep skills tracked, ignore everything else)
+.claude/*
+!.claude/skills/
+
+# B-Roll generator outputs
+out/
+.claude/skills/*/out/
+__pycache__/
