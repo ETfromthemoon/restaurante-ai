@@ -34,7 +34,7 @@ check python3 command -v python3
 check rclone command -v rclone
 
 echo "== Python packages =="
-for pkg in anthropic edge_tts requests faster_whisper pysrt slugify; do
+for pkg in anthropic edge_tts requests faster_whisper slugify; do
   check "python:$pkg" python3 -c "import $pkg"
 done
 
