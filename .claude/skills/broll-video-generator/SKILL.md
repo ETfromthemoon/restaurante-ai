@@ -55,7 +55,13 @@ Run `scripts/check_env.sh` first. It will tell you exactly what's missing.
 **Optional:**
 - `ELEVENLABS_API_KEY` — higher quality narration (set `TTS_PROVIDER=elevenlabs`)
 - `OPENAI_API_KEY` — alternative TTS (set `TTS_PROVIDER=openai`)
+- `espeak-ng` — offline fallback, no network needed (set `TTS_PROVIDER=espeak`, robotic voice)
 - GPU + CUDA for faster Whisper transcription
+
+**Running inside Claude Code on the web (remote container):**
+- `edge-tts` is blocked (network policy disallows `speech.platform.bing.com`) — use `TTS_PROVIDER=espeak`.
+- `faster-whisper` can't download models from HuggingFace — pre-bundle the model or skip the subtitle stage (a fallback SRT can be built from `timings.json`).
+- `rclone` Drive OAuth requires a browser — configure the remote on a local machine first, then copy `~/.config/rclone/rclone.conf` into the container.
 
 If a prereq is missing, **do not silently continue** — show the user what to install/configure and offer to run the install commands.
 

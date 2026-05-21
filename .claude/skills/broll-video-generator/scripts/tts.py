@@ -53,12 +53,33 @@ def openai_synth(text: str, voice: str, out_mp3: Path) -> None:
     out_mp3.write_bytes(r.content)
 
 
+ESPEAK_VOICES = {"es": "es-419", "en": "en-us"}
+
+
+def espeak_synth(text: str, voice: str, language: str, out_mp3: Path) -> None:
+    """Offline fallback. Robotic but needs no network or API key."""
+    voice = voice or ESPEAK_VOICES[language]
+    wav = out_mp3.with_suffix(".espeak.wav")
+    subprocess.run(
+        ["espeak-ng", "-v", voice, "-s", "165", "-w", str(wav), text],
+        check=True,
+    )
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav),
+         "-codec:a", "libmp3lame", "-qscale:a", "4", str(out_mp3)],
+        check=True,
+    )
+    wav.unlink()
+
+
 def synth_beat(text: str, voice: str, language: str, out_mp3: Path) -> None:
     provider = os.environ.get("TTS_PROVIDER", "edge").lower()
     if provider == "edge":
         asyncio.run(edge_synth(text, voice or DEFAULT_VOICES[language], out_mp3))
     elif provider == "elevenlabs":
         elevenlabs_synth(text, os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"), out_mp3)
+    elif provider == "espeak":
+        espeak_synth(text, voice, language, out_mp3)
     elif provider == "openai":
         openai_synth(text, voice or "nova", out_mp3)
     else:
